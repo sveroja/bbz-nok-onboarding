@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Lehrer-Bereich{% endblock %}
+{% block content %}
+<h1>Lehrer-Bereich</h1>
+<div class="row mt-4">
+  <div class="col-md-4">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title">Anmeldungen</h5>
+        <p class="card-text">Eingegangene Anmeldungen ansehen, prüfen und löschen.</p>
+        <a href="{{ url_for('teacher.registrations') }}" class="btn btn-primary">Öffnen</a>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title">CSV-Export</h5>
+        <p class="card-text">Alle Anmeldungen als CSV-Datei herunterladen.</p>
+        <a href="{{ url_for('teacher.export') }}" class="btn btn-outline-primary">Download</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

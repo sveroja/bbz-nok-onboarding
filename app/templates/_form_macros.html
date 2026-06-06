@@ -1,0 +1,14 @@
+{# Wiederverwendbare Makros für Formularfelder #}
+
+{% macro render_field(field, autocomplete=None) %}
+  <div class="mb-3">
+    {{ field.label(class="form-label") }}
+    {{ field(class="form-control" + (" is-invalid" if field.errors else ""),
+             autocomplete=autocomplete) }}
+    {% if field.errors %}
+      <div class="invalid-feedback d-block">
+        {% for err in field.errors %}{{ err }}{% endfor %}
+      </div>
+    {% endif %}
+  </div>
+{% endmacro %}

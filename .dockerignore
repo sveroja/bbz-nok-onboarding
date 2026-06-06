@@ -1,0 +1,25 @@
+# Nichts davon ins Image
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Lokale Secrets (kommen über docker-compose env_file rein)
+.env
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Doku ist nett im Repo, aber nicht im Image nötig
+README.md
+
+# Lokale Instance-DB nicht ins Image - kommt aus dem Volume
+instance/*.db

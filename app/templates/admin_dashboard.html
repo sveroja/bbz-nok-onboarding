@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Admin-Bereich{% endblock %}
+{% block content %}
+<h1>Admin-Bereich</h1>
+
+<div class="row mt-4">
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title">PLZ-Regel</h5>
+        <p class="card-text">
+          Referenz-PLZ: <strong>{{ plz_rule.reference_plz }}</strong><br>
+          Erlaubter Kreis:
+          <strong>{{ plz_rule.allowed_kreis or "(automatisch)" }}</strong><br>
+          Erlaubter Bezirk:
+          <strong>{{ plz_rule.allowed_bezirk or "(nicht gesetzt)" }}</strong>
+        </p>
+        <a href="{{ url_for('admin.plz') }}" class="btn btn-primary">Bearbeiten</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

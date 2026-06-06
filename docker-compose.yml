@@ -1,0 +1,31 @@
+services:
+  app:
+    build: .
+    image: schule-app:latest
+    container_name: schule-app
+    restart: unless-stopped
+
+    # Secrets/Config kommen aus .env (NICHT im Repo committen!)
+    env_file:
+      - .env
+
+    # SQLite-DB überlebt Container-Neustarts dank Named Volume
+    volumes:
+      - schule_data:/app/instance
+
+    # Direkt erreichbar auf Port 8000 des Hosts.
+    # Wenn später ein Reverse Proxy davor kommt:
+    # diese ports-Sektion entfernen und in ein gemeinsames Docker-Netz hängen.
+    ports:
+      - "8000:8000"
+
+    # Healthcheck – Compose meldet "unhealthy" wenn die App nicht antwortet
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/', timeout=3).status==200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  schule_data:

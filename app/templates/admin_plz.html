@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% from "_form_macros.html" import render_field %}
+{% block title %}PLZ-Regel{% endblock %}
+{% block content %}
+<h1>PLZ-Regel bearbeiten</h1>
+<p class="text-muted">
+  Die Referenz-PLZ ist die PLZ der Schule. Standardmäßig werden alle PLZ
+  akzeptiert, die im selben Kreis liegen. Kreis oder Bezirk können
+  explizit überschrieben werden.
+</p>
+
+<form method="post" novalidate>
+  {{ form.hidden_tag() }}
+  {{ render_field(form.reference_plz) }}
+  {{ render_field(form.allowed_kreis) }}
+  {{ render_field(form.allowed_bezirk) }}
+
+  <a href="{{ url_for('admin.dashboard') }}" class="btn btn-link">Zurück</a>
+  {{ form.submit(class="btn btn-primary") }}
+</form>
+{% endblock %}

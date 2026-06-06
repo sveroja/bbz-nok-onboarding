@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Anmeldung – Zusammenfassung{% endblock %}
+{% block content %}
+<h1>Zusammenfassung</h1>
+<p class="text-muted">Bitte prüfen Sie Ihre Angaben.</p>
+
+<table class="table">
+  <tbody>
+    <tr><th>Vorname</th><td>{{ reg.vorname }}</td></tr>
+    <tr><th>Nachname</th><td>{{ reg.nachname }}</td></tr>
+    <tr><th>Geburtsdatum</th><td>{{ reg.geburtsdatum }}</td></tr>
+    <tr><th>Straße</th><td>{{ reg.strasse }}</td></tr>
+    <tr><th>PLZ</th><td>{{ reg.plz }}</td></tr>
+    <tr><th>Ort</th><td>{{ reg.ort }}</td></tr>
+  </tbody>
+</table>
+
+<form method="post">
+  {{ form.hidden_tag() }}
+  <a href="{{ url_for('public.register_step2') }}" class="btn btn-link">Zurück (ändern)</a>
+  {{ form.submit(class="btn btn-success") }}
+</form>
+{% endblock %}

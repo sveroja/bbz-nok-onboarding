@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Anmeldungen{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="mb-0">Anmeldungen</h1>
+  <a href="{{ url_for('teacher.export') }}" class="btn btn-outline-primary btn-sm">
+    CSV-Export
+  </a>
+</div>
+
+{% if regs %}
+<div class="table-responsive">
+<table class="table table-striped align-middle">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Eingegangen</th>
+      <th>Name</th>
+      <th>Geb.</th>
+      <th>PLZ</th>
+      <th>PLZ-Prüfung</th>
+      <th>Status</th>
+      <th class="text-end">Aktionen</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for r in regs %}
+    <tr>
+      <td>{{ r.id }}</td>
+      <td>{{ r.created_at.strftime("%d.%m.%Y %H:%M") if r.created_at }}</td>
+      <td>{{ r.vorname }} {{ r.nachname }}</td>
+      <td>{{ r.geburtsdatum.strftime("%d.%m.%Y") if r.geburtsdatum }}</td>
+      <td>{{ r.plz }} {{ r.ort }}</td>
+      <td>
+        {% if r.plz_ok is none %}
+          <span class="badge bg-warning text-dark">unklar</span>
+        {% elif r.plz_ok %}
+          <span class="badge bg-success">passt</span>
+        {% else %}
+          <span class="badge bg-danger">passt nicht</span>
+        {% endif %}
+      </td>
+      <td>
+        {% if r.status == "checked" %}
+          <span class="badge bg-secondary">geprüft</span>
+        {% else %}
+          <span class="badge bg-info text-dark">neu</span>
+        {% endif %}
+      </td>
+      <td class="text-end">
+        <div class="d-flex gap-1 justify-content-end">
+          {% if r.status != "checked" %}
+          <form method="post" action="{{ url_for('teacher.mark_checked', reg_id=r.id) }}">
+            {{ action_form.hidden_tag() }}
+            <button class="btn btn-sm btn-success" type="submit">geprüft</button>
+          </form>
+          {% endif %}
+          <form method="post"
+                action="{{ url_for('teacher.delete', reg_id=r.id) }}"
+                onsubmit="return confirm('Datensatz wirklich löschen?');">
+            {{ action_form.hidden_tag() }}
+            <button class="btn btn-sm btn-outline-danger" type="submit">löschen</button>
+          </form>
+        </div>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+  <p class="text-muted">Noch keine Anmeldungen vorhanden.</p>
+{% endif %}
+{% endblock %}
