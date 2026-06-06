@@ -6,7 +6,7 @@ Vorteil gegenüber `request.form.get(...)`:
 - Saubere Wiederanzeige bei Fehlern
 """
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, DateField, SubmitField
+from wtforms import StringField, PasswordField, SubmitField
 from wtforms.validators import (
     DataRequired, Length, Regexp, Optional as OptionalValidator
 )
@@ -23,49 +23,6 @@ class LoginForm(FlaskForm):
         validators=[DataRequired(message="Bitte Passwort angeben.")],
     )
     submit = SubmitField("Anmelden")
-
-
-class RegisterStep1Form(FlaskForm):
-    """Schritt 1: Schülerdaten."""
-    vorname = StringField(
-        "Vorname",
-        validators=[DataRequired("Pflichtfeld."), Length(min=1, max=150)],
-    )
-    nachname = StringField(
-        "Nachname",
-        validators=[DataRequired("Pflichtfeld."), Length(min=1, max=150)],
-    )
-    geburtsdatum = DateField(
-        "Geburtsdatum",
-        validators=[DataRequired("Pflichtfeld.")],
-        format="%Y-%m-%d",
-    )
-    submit = SubmitField("Weiter")
-
-
-class RegisterStep2Form(FlaskForm):
-    """Schritt 2: Adresse."""
-    strasse = StringField(
-        "Straße und Hausnummer",
-        validators=[DataRequired("Pflichtfeld."), Length(min=1, max=200)],
-    )
-    plz = StringField(
-        "PLZ",
-        validators=[
-            DataRequired("Pflichtfeld."),
-            Regexp(r"^\d{5}$", message="Bitte 5-stellige PLZ angeben."),
-        ],
-    )
-    ort = StringField(
-        "Ort",
-        validators=[DataRequired("Pflichtfeld."), Length(min=1, max=150)],
-    )
-    submit = SubmitField("Weiter")
-
-
-class SummarySubmitForm(FlaskForm):
-    """Reiner CSRF-Schutz für den finalen Submit-Button."""
-    submit = SubmitField("Anmeldung absenden")
 
 
 class ActionForm(FlaskForm):
