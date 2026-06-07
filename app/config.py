@@ -28,6 +28,12 @@ class BaseConfig:
     REFERENCE_PLZ = os.environ.get("REFERENCE_PLZ", "24768")
     OPENPLZ_TIMEOUT = 5  # Sekunden
 
+    # Fluent-Forms-Anbindung (WordPress)
+    FLUENTFORM_BASE_URL = os.environ.get("FLUENTFORM_BASE_URL", "")
+    FLUENTFORM_FORM_ID = os.environ.get("FLUENTFORM_FORM_ID", "")
+    FLUENTFORM_USERNAME = os.environ.get("FLUENTFORM_USERNAME", "")
+    FLUENTFORM_PASSWORD = os.environ.get("FLUENTFORM_PASSWORD", "")
+
     # Rate-Limit-Storage (in-Memory reicht für eine Instanz)
     RATELIMIT_STORAGE_URI = "memory://"
 

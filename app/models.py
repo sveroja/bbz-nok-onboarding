@@ -249,6 +249,12 @@ class Registration(db.Model):
     # -- Interne LK-Notizen --------------------------------------------------
     notizen = db.Column(db.Text, nullable=True)
 
+    # -- Auffangbecken für unbekannte Fluent-Forms-Felder --------------------
+    # Wenn das WP-Formular ein Feld liefert, das nicht im Schema steht
+    # (z.B. weil später in Fluent Forms ein neues Feld hinzugefügt wurde),
+    # landet es hier als JSON-Dictionary. So geht nichts verloren.
+    extra_data = db.Column(db.Text, nullable=True)  # JSON-serialisiert
+
     # ------------------------------------------------------------------------
 
     @property
