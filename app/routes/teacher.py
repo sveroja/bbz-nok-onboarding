@@ -1,4 +1,4 @@
-"""Teacher-Bereich: Anmeldungen ansehen, prüfen, löschen, exportieren."""
+"""Teacher-Bereich: Anmeldungen ansehen, prüfen, löschen, exportieren, syncen."""
 import csv
 import io
 
@@ -7,10 +7,11 @@ from flask import (
 )
 from flask_login import login_required
 
-from ..extensions import db
+from ..extensions import db, limiter
 from ..models import Registration
 from ..decorators import role_required
 from ..forms import ActionForm
+from ..fluentform import sync_submissions
 
 bp = Blueprint("teacher", __name__, url_prefix="/teacher")
 
@@ -115,3 +116,42 @@ def export():
         download_name="anmeldungen.csv",
         mimetype="text/csv; charset=utf-8",
     )
+
+
+@bp.route("/sync", methods=["POST"])
+@login_required
+@role_required("teacher", "admin")
+@limiter.limit("6 per minute")
+def sync():
+    """Manueller Sync-Trigger aus dem UI."""
+    form = ActionForm()
+    if not form.validate_on_submit():
+        flash("Ungültige Anfrage (CSRF).", "error")
+        return redirect(url_for("teacher.registrations"))
+
+    try:
+        result = sync_submissions()
+    except RuntimeError as exc:
+        # Konfiguration fehlt o.ä. - klare Meldung an LK
+        flash(f"Sync nicht möglich: {exc}", "error")
+        return redirect(url_for("teacher.registrations"))
+    except Exception:
+        # Netzwerk/API-Fehler - generische Meldung, Details ins Log
+        import logging
+        logging.getLogger(__name__).exception("Sync fehlgeschlagen")
+        flash("Sync fehlgeschlagen. Details siehe Server-Log.", "error")
+        return redirect(url_for("teacher.registrations"))
+
+    msg_parts = []
+    if result["created"]:
+        msg_parts.append(f"{result['created']} neu")
+    if result["skipped"]:
+        msg_parts.append(f"{result['skipped']} schon vorhanden")
+    if result["errors"]:
+        msg_parts.append(f"{result['errors']} Fehler")
+    if not msg_parts:
+        msg_parts.append("nichts Neues")
+
+    flash("Sync: " + ", ".join(msg_parts) + ".",
+          "warning" if result["errors"] else "success")
+    return redirect(url_for("teacher.registrations"))

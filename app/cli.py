@@ -2,6 +2,7 @@
 
     flask --app run.py init-db
     flask --app run.py create-user <username> <admin|teacher>
+    flask --app run.py sync-fluentform
 """
 import os
 import getpass
@@ -16,6 +17,7 @@ from .models import User, PlzRule
 def register_cli(app):
     app.cli.add_command(init_db)
     app.cli.add_command(create_user)
+    app.cli.add_command(sync_fluentform)
 
 
 @click.command("init-db")
@@ -87,3 +89,26 @@ def create_user(username, role):
     db.session.add(user)
     db.session.commit()
     click.echo(f"Nutzer '{username}' ({role}) angelegt.")
+
+
+@click.command("sync-fluentform")
+@with_appcontext
+def sync_fluentform():
+    """Holt neue Anmeldungen aus Fluent Forms (WordPress) ab."""
+    from .fluentform import sync_submissions
+
+    try:
+        result = sync_submissions()
+    except RuntimeError as exc:
+        click.echo(f"FEHLER: {exc}", err=True)
+        raise click.Abort()
+    except Exception as exc:
+        click.echo(f"FEHLER beim Sync: {exc}", err=True)
+        raise click.Abort()
+
+    click.echo(
+        f"Sync fertig: {result['fetched']} geholt, "
+        f"{result['created']} neu angelegt, "
+        f"{result['skipped']} bereits vorhanden (übersprungen), "
+        f"{result['errors']} Fehler."
+    )
