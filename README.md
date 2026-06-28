@@ -62,7 +62,7 @@ nicht ins Internet erreichbar sein, läuft hinter VPN / im Intranet.
 ## Schnellstart
 
 ```bash
-git clone git@github.com:DEIN-USERNAME/bbz-nok-onboarding.git
+git clone git@github.com:sveroja/bbz-nok-onboarding.git
 cd bbz-nok-onboarding
 cp .env.example .env
 # .env editieren - siehe Abschnitt "Konfiguration"
