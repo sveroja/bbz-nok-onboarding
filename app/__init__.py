@@ -39,6 +39,18 @@ def create_app(config_class=None) -> Flask:
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     )
 
+    if app.config["SECRET_KEY"] == app.config["SECRET_KEY_PLACEHOLDER"]:
+        if app.debug:
+            logging.getLogger(__name__).warning(
+                "SECRET_KEY ist noch der Platzhalter aus .env.example - "
+                "fuer Development ok, vor Produktivbetrieb unbedingt aendern!"
+            )
+        else:
+            raise RuntimeError(
+                "SECRET_KEY ist noch der Platzhalter aus .env.example! "
+                "In Produktion muss ein echter, zufaelliger Wert gesetzt sein."
+            )
+
     # Extensions binden
     db.init_app(app)
     login_manager.init_app(app)

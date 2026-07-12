@@ -12,6 +12,9 @@ class BaseConfig:
     # Pflicht: muss aus ENV kommen
     SECRET_KEY = os.environ.get("SECRET_KEY")
 
+    # Unveraenderter Platzhalter aus .env.example - in Production nicht erlaubt
+    SECRET_KEY_PLACEHOLDER = "bitte-aendern-mindestens-32-zeichen-zufaellig"
+
     # SQLite in instance/-Ordner (Flask-Standard)
     SQLALCHEMY_DATABASE_URI = f"sqlite:///{BASE_DIR / 'instance' / 'schule_app.db'}"
     SQLALCHEMY_TRACK_MODIFICATIONS = False

@@ -77,7 +77,8 @@ Passwörtern aus `.env`.
 
 | Variable | Bedeutung |
 |---|---|
-| `SECRET_KEY` | Flask-Session-Schlüssel. `python3 -c "import secrets; print(secrets.token_hex(32))"` |
+| `FLASK_ENV` | `development` oder `production`. **Für echten Betrieb zwingend `production`** – siehe Abschnitt „Mit Reverse Proxy (Produktion)" |
+| `SECRET_KEY` | Flask-Session-Schlüssel. Generieren ohne lokales Python, direkt über Docker: `docker run --rm python:3.12-slim python -c "import secrets; print(secrets.token_hex(32))"` |
 | `ADMIN_PASSWORD` | Initial-Passwort für den `admin`-Nutzer |
 | `TEACHER_PASSWORD` | Initial-Passwort für den `lehrer`-Nutzer |
 | `REFERENCE_PLZ` | PLZ der Schule (für Sprengel-Prüfung) |
@@ -160,6 +161,13 @@ In `.env`:
 FLASK_ENV=production
 SESSION_COOKIE_SECURE=True
 ```
+
+**Sicherheitshinweis:** Auch ganz ohne Reverse Proxy gilt: echter Betrieb
+(also sobald die App für andere als dich selbst erreichbar ist) läuft immer
+mit `FLASK_ENV=production`. `development` ist nur für lokales Testen gedacht:
+`SESSION_COOKIE_SECURE` lässt sich dort auf `False` lassen, und ein
+unveränderter `SECRET_KEY`-Platzhalter aus `.env.example` wird nur mit
+Warnung akzeptiert statt den Start zu verweigern.
 
 ## Wenn das Formular geändert wird
 
