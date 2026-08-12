@@ -19,5 +19,23 @@
       </div>
     </div>
   </div>
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title">Logo</h5>
+        <p class="card-text">Logo für die Navigation hochladen oder entfernen.</p>
+        <a href="{{ url_for('admin.logo') }}" class="btn btn-primary">Verwalten</a>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title">Export-Vorlagen</h5>
+        <p class="card-text">Stammdatenblatt-PDF, Klassenbuch- und DaZ-Vorlage hochladen.</p>
+        <a href="{{ url_for('admin.vorlagen_view') }}" class="btn btn-primary">Verwalten</a>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}

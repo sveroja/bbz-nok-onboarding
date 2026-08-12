@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% from "_form_macros.html" import render_field %}
+{% block title %}Klassendaten bearbeiten{% endblock %}
+{% block content %}
+<h1>Klassendaten bearbeiten</h1>
+<p class="text-muted">
+  {{ reg.vorname }} {{ reg.nachname }} — diese Felder stehen nicht (vollständig)
+  im Aufnahmebogen bzw. kommen nicht per Sync und werden hier von Hand gepflegt.
+</p>
+
+<form method="post" novalidate>
+  {{ form.hidden_tag() }}
+  {{ render_field(form.hauptlistennummer) }}
+  {{ render_field(form.aufnahmedatum) }}
+  {{ render_field(form.eintrittsdatum) }}
+  {{ render_field(form.sprachniveau) }}
+  <div class="form-check mb-3">
+    {{ form.sprachniveau_nachweis(class="form-check-input") }}
+    {{ form.sprachniveau_nachweis.label(class="form-check-label") }}
+  </div>
+
+  <a href="{{ url_for('teacher.registrations') }}" class="btn btn-link">Zurück</a>
+  {{ form.submit(class="btn btn-primary") }}
+</form>
+{% endblock %}

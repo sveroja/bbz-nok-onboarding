@@ -125,6 +125,22 @@ Rollen: `admin` oder `teacher`. Passwort wird interaktiv abgefragt.
 Im UI: „Anmeldungen anzeigen" → **„CSV-Export"**. UTF-8 mit BOM, damit Excel
 die Umlaute korrekt darstellt.
 
+### Klassen/Züge verwalten
+
+Bei mehreren gleichzeitig eingeschulten Klassen (z.B. bei Mehrzügigkeit)
+können LK selbst Klassen anlegen: „Anmeldungen anzeigen" → **„Klassen
+verwalten"**.
+
+- Name frei wählbar (z.B. `ELI026a`, `ELI026b`), plus ein oder mehrere
+  Bildungsgänge (fester Katalog, siehe `BILDUNGSGANG_CHOICES` in
+  `app/models.py` – **muss** mit den Dropdown-Optionen des „Beruf"-Felds
+  in Fluent Forms übereinstimmen).
+- In der Anmeldungsübersicht bekommt jede Zeile ein „Zug"-Dropdown,
+  gefiltert auf die zum `beruf` der Anmeldung passenden Klassen. Oben in
+  der Übersicht lässt sich zusätzlich nach Zug filtern.
+- Rein organisatorisch, keine Zugriffskontrolle: jede LK sieht und
+  verwaltet alle Klassen und Anmeldungen, unabhängig vom zugeordneten Zug.
+
 ### Backup der Datenbank
 
 ```bash

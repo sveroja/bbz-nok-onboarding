@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% from "_form_macros.html" import render_field %}
+{% block title %}Logo{% endblock %}
+{% block content %}
+<h1>Logo</h1>
+<p class="text-muted">
+  Wird oben links in der Navigation angezeigt. Erlaubt: PNG oder JPG,
+  wird beim Hochladen automatisch normalisiert.
+</p>
+
+{% if has_logo %}
+  <div class="mb-3">
+    <img src="{{ url_for('public.logo') }}" alt="Aktuelles Logo" style="max-height: 80px;">
+  </div>
+  <form method="post" action="{{ url_for('admin.delete_logo') }}" class="mb-4"
+        onsubmit="return confirm('Logo wirklich entfernen?');">
+    {{ form.hidden_tag() }}
+    <button type="submit" class="btn btn-outline-danger btn-sm">Logo entfernen</button>
+  </form>
+{% endif %}
+
+<form method="post" enctype="multipart/form-data" novalidate>
+  {{ form.hidden_tag() }}
+  {{ render_field(form.logo) }}
+  {{ form.submit(class="btn btn-primary") }}
+</form>
+{% endblock %}

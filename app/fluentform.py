@@ -144,6 +144,21 @@ def parse_date(value: str) -> Optional[date]:
         return None
 
 
+def parse_ff_timestamp(value: str) -> Optional[datetime]:
+    """Wandelt den Submission-eigenen 'created_at' von Fluent Forms
+    ('2026-01-15 09:23:45') in ein UTC-aware datetime. Leer/ungültig → None.
+    """
+    if not value or not value.strip():
+        return None
+    try:
+        return datetime.strptime(value.strip(), "%Y-%m-%d %H:%M:%S").replace(
+            tzinfo=timezone.utc
+        )
+    except ValueError:
+        logger.warning("Konnte Submission-Timestamp nicht parsen: %r", value)
+        return None
+
+
 def parse_bool(value: str) -> Optional[bool]:
     """Mappt 'ja'/'nein' auf True/False. Leer → None (= keine Angabe)."""
     if value is None:
@@ -198,6 +213,12 @@ def submission_to_registration(submission: dict) -> Registration:
     # Stamm-Metadaten
     reg.external_id = str(submission.get("id") or "")
     reg.synced_at = datetime.now(timezone.utc)
+
+    # Tatsaechliches Anmeldedatum = FF-Submission-Zeitpunkt, nicht Sync-Zeitpunkt.
+    # Fehlt/unparsebar -> created_at-Spaltendefault (jetzt) greift beim Insert.
+    submitted_at = parse_ff_timestamp(submission.get("created_at"))
+    if submitted_at is not None:
+        reg.created_at = submitted_at
 
     # Spezialfall 1: "names" ist verschachtelt {first_name, last_name}
     names = data.get("names") or {}

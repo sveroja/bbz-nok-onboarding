@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% from "_form_macros.html" import render_field %}
+{% block title %}Export-Vorlagen{% endblock %}
+{% block content %}
+<h1>Export-Vorlagen</h1>
+<p class="text-muted">
+  Diese Dateien werden für die Exporte in der Anmeldungsübersicht benötigt.
+  Sie liegen nur auf diesem Server, nicht im Git-Repo.
+</p>
+
+<div class="row">
+  {% for key, info in vorlagen.items() %}
+  <div class="col-md-6 mb-4">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title">{{ info.label }}</h5>
+        {% if status[key] %}
+          <p class="card-text text-success">✓ hochgeladen</p>
+          <form method="post" action="{{ url_for('admin.delete_vorlage', key=key) }}"
+                class="mb-3" onsubmit="return confirm('Wirklich entfernen?');">
+            {{ form.hidden_tag() }}
+            <button type="submit" class="btn btn-outline-danger btn-sm">Entfernen</button>
+          </form>
+        {% else %}
+          <p class="card-text text-muted">noch nicht hochgeladen</p>
+        {% endif %}
+        <form method="post" action="{{ url_for('admin.upload_vorlage', key=key) }}"
+              enctype="multipart/form-data" novalidate>
+          {{ form.hidden_tag() }}
+          {{ render_field(form.datei) }}
+          {{ form.submit(class="btn btn-primary btn-sm") }}
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

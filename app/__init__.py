@@ -75,4 +75,18 @@ def create_app(config_class=None) -> Flask:
     from .cli import register_cli
     register_cli(app)
 
+    # Kein Caching dynamischer Seiten: sonst zeigt der Browser bei F5
+    # veraltete Anmeldungsdaten (z.B. Zug-Zuordnung einer anderen LK) an.
+    # Nebenbei sinnvoll, da hier personenbezogene SuS-Daten angezeigt werden.
+    @app.after_request
+    def _no_cache(response):
+        response.headers["Cache-Control"] = "no-store"
+        return response
+
+    from . import branding
+
+    @app.context_processor
+    def _inject_branding():
+        return {"has_logo": branding.has_logo()}
+
     return app

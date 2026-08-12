@@ -2,7 +2,13 @@
 {% block title %}Anmeldungen{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
-  <h1 class="mb-0">Anmeldungen</h1>
+  <div>
+    <h1 class="mb-0">Anmeldungen</h1>
+    <p class="text-muted mb-0">
+      Bereich: <strong>{{ aktive_klasse.name if aktive_klasse else "alle" }}</strong>
+      <a href="{{ url_for('teacher.bereich') }}" class="ms-1">Bereich wechseln</a>
+    </p>
+  </div>
   <div class="d-flex gap-2">
     <form method="post" action="{{ url_for('teacher.sync') }}" class="m-0">
       {{ action_form.hidden_tag() }}
@@ -10,9 +16,67 @@
         Jetzt synchronisieren
       </button>
     </form>
-    <a href="{{ url_for('teacher.export') }}" class="btn btn-outline-primary btn-sm">
-      CSV-Export
+    <a href="{{ url_for('teacher.klassen') }}" class="btn btn-outline-secondary btn-sm">
+      Klassen verwalten
     </a>
+  </div>
+</div>
+
+<form method="get" action="{{ url_for('teacher.registrations') }}" class="mb-3 d-flex align-items-center gap-2">
+  <label for="zug_id" class="form-label m-0">Zug anzeigen:</label>
+  <select id="zug_id" name="zug_id" class="form-select form-select-sm w-auto" onchange="this.form.submit()">
+    <option value="">alle</option>
+    {% for k in klassen %}
+      <option value="{{ k.id }}" {% if zug_filter == k.id %}selected{% endif %}>{{ k.name }}</option>
+    {% endfor %}
+  </select>
+  {% if zug_filter %}
+    <a href="{{ url_for('teacher.registrations') }}" class="btn btn-sm btn-link">Filter entfernen</a>
+  {% endif %}
+</form>
+
+<div class="card mb-3">
+  <div class="card-body">
+    <h5 class="card-title">Exporte</h5>
+    <p class="card-text text-muted">
+      Beziehen sich immer auf die aktuell angezeigten Anmeldungen (Bereich +
+      Zug-Filter oben).
+    </p>
+    <div class="d-flex flex-wrap gap-2 align-items-end">
+      <a href="{{ url_for('teacher.export', zug_id=zug_filter) }}"
+         class="btn btn-outline-primary btn-sm">CSV-Export</a>
+      <a href="{{ url_for('teacher.export_klassen_lk', zug_id=zug_filter) }}"
+         class="btn btn-outline-primary btn-sm">Excel für Klassen-LK</a>
+      <a href="{{ url_for('teacher.export_stammdatenblatt', zug_id=zug_filter) }}"
+         class="btn btn-outline-primary btn-sm">Stammdatenblätter (PDF)</a>
+
+      <form method="get" action="{{ url_for('teacher.export_klassenbuch') }}"
+            class="d-flex align-items-end gap-1">
+        <input type="hidden" name="zug_id" value="{{ zug_filter or '' }}">
+        <div>
+          <label for="letzter_schultag" class="form-label m-0 small">Letzter Schultag</label>
+          <input type="date" id="letzter_schultag" name="letzter_schultag"
+                 class="form-control form-control-sm" required>
+        </div>
+        <button type="submit" class="btn btn-outline-primary btn-sm">Klassenbuch-Import</button>
+      </form>
+
+      <form method="get" action="{{ url_for('teacher.export_daz') }}"
+            class="d-flex align-items-end gap-1">
+        <input type="hidden" name="zug_id" value="{{ zug_filter or '' }}">
+        <div>
+          <label for="abteilung" class="form-label m-0 small">Abteilung</label>
+          <input type="text" id="abteilung" name="abteilung"
+                 class="form-control form-control-sm" style="width: 10rem;" required>
+        </div>
+        <div>
+          <label for="schuljahr" class="form-label m-0 small">Schuljahr</label>
+          <input type="text" id="schuljahr" name="schuljahr" placeholder="2026/27"
+                 class="form-control form-control-sm" style="width: 6rem;" required>
+        </div>
+        <button type="submit" class="btn btn-outline-primary btn-sm">DaZ-Import</button>
+      </form>
+    </div>
   </div>
 </div>
 
@@ -24,6 +88,8 @@
       <th>ID</th>
       <th>Eingegangen</th>
       <th>Name</th>
+      <th>Beruf</th>
+      <th>Zug</th>
       <th>Geb.</th>
       <th>PLZ</th>
       <th>PLZ-Prüfung</th>
@@ -37,6 +103,19 @@
       <td>{{ r.id }}</td>
       <td>{{ r.created_at.strftime("%d.%m.%Y %H:%M") if r.created_at }}</td>
       <td>{{ r.vorname }} {{ r.nachname }}</td>
+      <td>{{ r.beruf }}</td>
+      <td>
+        <form method="post" action="{{ url_for('teacher.assign_zug', reg_id=r.id) }}">
+          {{ action_form.hidden_tag() }}
+          {% set passende_klassen = beruf_to_klassen.get(r.beruf) or klassen %}
+          <select name="zug_id" class="form-select form-select-sm" onchange="this.form.submit()">
+            <option value="">– nicht zugeordnet –</option>
+            {% for k in passende_klassen %}
+              <option value="{{ k.id }}" {% if r.zug_id == k.id %}selected{% endif %}>{{ k.name }}</option>
+            {% endfor %}
+          </select>
+        </form>
+      </td>
       <td>{{ r.geburtsdatum.strftime("%d.%m.%Y") if r.geburtsdatum }}</td>
       <td>{{ r.plz }} {{ r.ort }}</td>
       <td>
@@ -57,6 +136,8 @@
       </td>
       <td class="text-end">
         <div class="d-flex gap-1 justify-content-end">
+          <a href="{{ url_for('teacher.edit_registration', reg_id=r.id) }}"
+             class="btn btn-sm btn-outline-secondary">bearbeiten</a>
           {% if r.status != "checked" %}
           <form method="post" action="{{ url_for('teacher.mark_checked', reg_id=r.id) }}">
             {{ action_form.hidden_tag() }}

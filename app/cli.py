@@ -9,6 +9,7 @@ import getpass
 
 import click
 from flask.cli import with_appcontext
+from sqlalchemy import inspect, text
 
 from .extensions import db
 from .models import User, PlzRule
@@ -20,6 +21,30 @@ def register_cli(app):
     app.cli.add_command(sync_fluentform)
 
 
+NEW_REGISTRATION_COLUMNS = [
+    ("zug_id", "INTEGER REFERENCES klasse(id)"),
+    ("sprachniveau", "VARCHAR(5)"),
+    ("sprachniveau_nachweis", "BOOLEAN"),
+]
+
+
+def _ensure_new_columns():
+    """Ergaenzt Spalten, die durch spaetere Features zur bestehenden
+    registration-Tabelle dazugekommen sind. db.create_all() legt nur fehlende
+    Tabellen an, aendert aber keine bestehenden - daher hier per ALTER TABLE.
+    Idempotent: prueft vorher, ob die Spalte schon existiert.
+    """
+    inspector = inspect(db.engine)
+    existing = {col["name"] for col in inspector.get_columns("registration")}
+    for name, ddl_type in NEW_REGISTRATION_COLUMNS:
+        if name not in existing:
+            db.session.execute(text(
+                f"ALTER TABLE registration ADD COLUMN {name} {ddl_type}"
+            ))
+            db.session.commit()
+            click.echo(f"Spalte '{name}' zu registration ergänzt.")
+
+
 @click.command("init-db")
 @with_appcontext
 def init_db():
@@ -29,6 +54,7 @@ def init_db():
     ADMIN_PASSWORD / TEACHER_PASSWORD gelesen.
     """
     db.create_all()
+    _ensure_new_columns()
     click.echo("Tabellen angelegt.")
 
     admin_pw = os.environ.get("ADMIN_PASSWORD")

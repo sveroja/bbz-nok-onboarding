@@ -11,6 +11,11 @@ instance/
 # Secrets
 .env
 
+# Interne Unterlagen (nicht fuers Repo)
+Stammdatenblatt*.pdf
+Klasse - Datum import digitales Klassenbuch.xlsx
+ImportDaZ.xlsx
+
 # IDE
 .vscode/
 .idea/

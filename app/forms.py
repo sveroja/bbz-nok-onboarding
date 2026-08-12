@@ -6,10 +6,19 @@ Vorteil gegenüber `request.form.get(...)`:
 - Saubere Wiederanzeige bei Fehlern
 """
 from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField
+from flask_wtf.file import FileField, FileAllowed, FileSize
+from wtforms import (
+    BooleanField, DateField, SelectField, StringField, PasswordField,
+    SelectMultipleField, SubmitField,
+)
 from wtforms.validators import (
     DataRequired, Length, Regexp, Optional as OptionalValidator
 )
+from wtforms.widgets import ListWidget, CheckboxInput
+
+from .models import BILDUNGSGANG_CHOICES, SPRACHNIVEAU_CHOICES
+
+LOGO_MAX_SIZE_MB = 2
 
 
 class LoginForm(FlaskForm):
@@ -47,3 +56,73 @@ class PlzRuleForm(FlaskForm):
         validators=[OptionalValidator(), Length(max=200)],
     )
     submit = SubmitField("Speichern")
+
+
+class KlasseForm(FlaskForm):
+    name = StringField(
+        "Name (z.B. ELI026a)",
+        validators=[DataRequired("Pflichtfeld."), Length(max=50)],
+    )
+    zustaendige_lehrkraft = StringField(
+        "Zuständige Lehrkraft (optional, nur zur Anzeige)",
+        validators=[OptionalValidator(), Length(max=150)],
+    )
+    bildungsgaenge = SelectMultipleField(
+        "Bildungsgänge",
+        choices=[(b, b) for b in BILDUNGSGANG_CHOICES],
+        option_widget=CheckboxInput(),
+        widget=ListWidget(prefix_label=False),
+        validators=[DataRequired("Mindestens einen Bildungsgang auswählen.")],
+    )
+    submit = SubmitField("Klasse anlegen")
+
+
+class RegistrationLKForm(FlaskForm):
+    """Felder aus Sektion 1 (Klassendaten) + DaZ-Sprachniveau - beides von
+    der LK im Tool nachgepflegt, steht nicht/nicht vollstaendig im
+    Aufnahmebogen bzw. wird nicht per Fluent-Forms-Sync geliefert.
+    """
+    hauptlistennummer = StringField(
+        "Hauptlistennummer", validators=[OptionalValidator(), Length(max=50)],
+    )
+    aufnahmedatum = DateField(
+        "Aufnahmedatum (Beginn der Ausbildung)", validators=[OptionalValidator()],
+    )
+    eintrittsdatum = DateField(
+        "Eintrittsdatum (in unsere Schule)", validators=[OptionalValidator()],
+    )
+    sprachniveau = SelectField(
+        "DaZ-Sprachniveau",
+        choices=[("", "– keine Angabe –")] + [(s, s) for s in SPRACHNIVEAU_CHOICES],
+        validators=[OptionalValidator()],
+    )
+    sprachniveau_nachweis = BooleanField(
+        "Nachweis (Zertifikat) vorhanden", validators=[OptionalValidator()],
+    )
+    submit = SubmitField("Speichern")
+
+
+class VorlageForm(FlaskForm):
+    datei = FileField(
+        "Datei",
+        validators=[
+            DataRequired("Bitte eine Datei auswählen."),
+            FileAllowed(["pdf", "xlsx"], "Nur PDF oder XLSX erlaubt."),
+            FileSize(max_size=10 * 1024 * 1024,
+                     message="Datei zu groß (max. 10 MB)."),
+        ],
+    )
+    submit = SubmitField("Hochladen")
+
+
+class LogoForm(FlaskForm):
+    logo = FileField(
+        "Logo (PNG oder JPG, max. {} MB)".format(LOGO_MAX_SIZE_MB),
+        validators=[
+            DataRequired("Bitte eine Datei auswählen."),
+            FileAllowed(["png", "jpg", "jpeg"], "Nur PNG oder JPG erlaubt."),
+            FileSize(max_size=LOGO_MAX_SIZE_MB * 1024 * 1024,
+                     message="Datei zu groß (max. {} MB).".format(LOGO_MAX_SIZE_MB)),
+        ],
+    )
+    submit = SubmitField("Hochladen")

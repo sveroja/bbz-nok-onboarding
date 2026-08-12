@@ -115,6 +115,23 @@ STATUS_CHOICES = [
     ("complete",  "vollständig"),  # LK-Felder ergänzt
 ]
 
+# Feste Liste der Bildungsgänge der Schule. Muss mit den Dropdown-Optionen
+# des "Beruf"-Felds in Fluent Forms uebereinstimmen (siehe README), damit
+# Anmeldungen automatisch den passenden Klassen/Zuegen zugeordnet werden
+# koennen. Bei neuen Bildungsgaengen: hier UND in Fluent Forms ergaenzen.
+BILDUNGSGANG_CHOICES = [
+    "Fachinformatiker",
+    "Informationselektroniker",
+    "Elektroniker Energie- und Gebäudetechnik",
+    "Elektroniker für Betriebstechnik",
+    "Elektriker Fachrichtung Betriebstechnik",
+    "IT-Systemelektroniker",
+]
+
+# DaZ-Sprachniveau (steht nicht im Aufnahmebogen selbst, nur "DaZ ja/nein" -
+# wird von der LK separat nachgepflegt, siehe ImportDaZ-Vorlage).
+SPRACHNIVEAU_CHOICES = ["A0", "A1", "A2", "B1", "B2", "C1"]
+
 
 # ---------------------------------------------------------------------------
 # Modelle
@@ -155,8 +172,15 @@ class Registration(db.Model):
     synced_at = db.Column(db.DateTime(timezone=True), nullable=True)
 
     # -- Sektion 1: Klassendaten (LK) ----------------------------------------
+    # klasse/klassenlehrer: Freitext-Erbe aus dem analogen PDF, wird bisher
+    # nirgends im Tool gepflegt. Zuordnung laeuft stattdessen ueber zug_id.
     klasse = db.Column(db.String(50), nullable=True)
     klassenlehrer = db.Column(db.String(150), nullable=True)
+
+    # Zug-Zuordnung (z.B. "ELI026a") - manuell durch LK in der Uebersicht
+    # gesetzt, rein organisatorisch (kein Zugriffsschutz, siehe Klasse-Modell).
+    zug_id = db.Column(db.Integer, db.ForeignKey("klasse.id"), nullable=True)
+    zug = db.relationship("Klasse")
     aufnahmedatum = db.Column(db.Date, nullable=True)        # Beginn der Ausbildung
     eintrittsdatum = db.Column(db.Date, nullable=True)       # in unsere Schule
     hauptlistennummer = db.Column(db.String(50), nullable=True)
@@ -177,6 +201,9 @@ class Registration(db.Model):
     muttersprache = db.Column(db.String(100), nullable=True)
     jahr_des_zuzugs = db.Column(db.String(10), nullable=True)  # String wg. "unbekannt" etc.
     daz_bedarf = db.Column(db.Boolean, nullable=True)        # Sprachniveau <C1
+    # Nicht im Aufnahmebogen, von LK nachgepflegt (siehe DaZ-Import-Export):
+    sprachniveau = db.Column(db.String(5), nullable=True)    # SPRACHNIVEAU_CHOICES
+    sprachniveau_nachweis = db.Column(db.Boolean, nullable=True)  # Zertifikat vorhanden?
 
     # -- Sektion 3: Adress-/Kontaktdaten (SuS) -------------------------------
     wohnt_bei = db.Column(db.String(200), nullable=True)
@@ -264,6 +291,38 @@ class Registration(db.Model):
 
     def __repr__(self) -> str:
         return f"<Registration {self.id}: {self.vollstaendiger_name}>"
+
+
+class Klasse(db.Model):
+    """Ein Zug/eine Klasse (z.B. 'ELI026a'), dem SuS bei der Anmeldung manuell
+    zugeordnet werden. Rein organisatorisch - keine Zugriffskontrolle, jede
+    LK sieht und verwaltet alle Klassen.
+    """
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50), unique=True, nullable=False)
+    zustaendige_lehrkraft = db.Column(db.String(150), nullable=True)
+    created_at = db.Column(db.DateTime(timezone=True), default=_utcnow)
+
+    bildungsgaenge = db.relationship(
+        "KlasseBildungsgang", backref="klasse", cascade="all, delete-orphan"
+    )
+
+    def __repr__(self) -> str:
+        return f"<Klasse {self.name}>"
+
+
+class KlasseBildungsgang(db.Model):
+    """m:n-Verknuepfung: eine Klasse kann mehrere Bildungsgaenge abdecken
+    (z.B. gemeinsame Grundstufe), ein Bildungsgang kann ueber mehrere
+    Klassen/Zuege verteilt sein. bildungsgang-Werte siehe BILDUNGSGANG_CHOICES.
+    """
+    id = db.Column(db.Integer, primary_key=True)
+    klasse_id = db.Column(db.Integer, db.ForeignKey("klasse.id"), nullable=False)
+    bildungsgang = db.Column(db.String(200), nullable=False)
+
+    __table_args__ = (
+        db.UniqueConstraint("klasse_id", "bildungsgang", name="uq_klasse_bildungsgang"),
+    )
 
 
 class PlzRule(db.Model):

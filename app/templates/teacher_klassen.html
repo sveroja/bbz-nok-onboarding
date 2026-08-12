@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% from "_form_macros.html" import render_field %}
+{% block title %}Klassen{% endblock %}
+{% block content %}
+<h1>Klassen verwalten</h1>
+<p class="text-muted">
+  Klassen (Züge) sind rein organisatorisch - jede Lehrkraft sieht und
+  verwaltet alle Klassen. Die Zuordnung einer Anmeldung zu einem Zug
+  erfolgt in der <a href="{{ url_for('teacher.registrations') }}">Anmeldungsübersicht</a>.
+</p>
+
+<div class="row">
+  <div class="col-md-5">
+    <h5>Neue Klasse anlegen</h5>
+    <form method="post" novalidate>
+      {{ form.hidden_tag() }}
+      {{ render_field(form.name) }}
+      {{ render_field(form.zustaendige_lehrkraft) }}
+      <div class="mb-3">
+        {{ form.bildungsgaenge.label(class="form-label") }}
+        {% for subfield in form.bildungsgaenge %}
+          <div class="form-check">
+            {{ subfield(class="form-check-input") }}
+            {{ subfield.label(class="form-check-label") }}
+          </div>
+        {% endfor %}
+        {% if form.bildungsgaenge.errors %}
+          <div class="invalid-feedback d-block">
+            {% for err in form.bildungsgaenge.errors %}{{ err }}{% endfor %}
+          </div>
+        {% endif %}
+      </div>
+      {{ form.submit(class="btn btn-primary") }}
+    </form>
+  </div>
+
+  <div class="col-md-7">
+    <h5>Bestehende Klassen</h5>
+    {% if klassen %}
+    <div class="table-responsive">
+    <table class="table table-striped align-middle">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Bildungsgänge</th>
+          <th>Zuständige LK</th>
+          <th class="text-end">Aktionen</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for k in klassen %}
+        <tr>
+          <td>{{ k.name }}</td>
+          <td>{{ k.bildungsgaenge | map(attribute="bildungsgang") | join(", ") }}</td>
+          <td>{{ k.zustaendige_lehrkraft or "" }}</td>
+          <td class="text-end">
+            <form method="post" action="{{ url_for('teacher.delete_klasse', klasse_id=k.id) }}"
+                  onsubmit="return confirm('Klasse wirklich löschen? Zugeordnete Anmeldungen verlieren die Zuordnung.');">
+              {{ form.hidden_tag() }}
+              <button class="btn btn-sm btn-outline-danger" type="submit">löschen</button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% else %}
+      <p class="text-muted">Noch keine Klassen angelegt.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
