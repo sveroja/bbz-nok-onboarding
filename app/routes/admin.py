@@ -1,12 +1,14 @@
 """Admin-Bereich: PLZ-Regel, Logo-Branding verwalten."""
-from flask import Blueprint, render_template, redirect, url_for, flash
+from flask import Blueprint, render_template, redirect, request, url_for, flash
 from flask_login import login_required
 
 from .. import branding, vorlagen
 from ..extensions import db
-from ..models import PlzRule
+from ..models import BILDUNGSGANG_CHOICES, BildungsgangKreis, PlzRule
 from ..decorators import role_required
-from ..forms import ActionForm, PlzRuleForm, LogoForm, VorlageForm
+from ..forms import (
+    ActionForm, BildungsgangKreisForm, PlzRuleForm, LogoForm, VorlageForm,
+)
 
 bp = Blueprint("admin", __name__, url_prefix="/admin")
 
@@ -75,6 +77,49 @@ def delete_logo():
     branding.delete_logo()
     flash("Logo entfernt.", "success")
     return redirect(url_for("admin.logo"))
+
+
+@bp.route("/kreise")
+@login_required
+@role_required("admin")
+def kreise_view():
+    konfiguriert = {
+        bk.bildungsgang
+        for bk in BildungsgangKreis.query.with_entities(BildungsgangKreis.bildungsgang).distinct()
+    }
+    return render_template(
+        "admin_kreise.html",
+        bildungsgaenge=BILDUNGSGANG_CHOICES,
+        konfiguriert=konfiguriert,
+    )
+
+
+@bp.route("/kreise/<bildungsgang>", methods=["GET", "POST"])
+@login_required
+@role_required("admin")
+def kreise_bildungsgang(bildungsgang):
+    if bildungsgang not in BILDUNGSGANG_CHOICES:
+        flash("Unbekannter Bildungsgang.", "error")
+        return redirect(url_for("admin.kreise_view"))
+
+    form = BildungsgangKreisForm()
+    bestehende = BildungsgangKreis.query.filter_by(bildungsgang=bildungsgang).all()
+
+    if form.validate_on_submit():
+        for bk in bestehende:
+            db.session.delete(bk)
+        for kreis in form.kreise.data:
+            db.session.add(BildungsgangKreis(bildungsgang=bildungsgang, kreis=kreis))
+        db.session.commit()
+        flash(f"Kreise für '{bildungsgang}' gespeichert.", "success")
+        return redirect(url_for("admin.kreise_view"))
+
+    if request.method == "GET":
+        form.kreise.data = [bk.kreis for bk in bestehende]
+
+    return render_template(
+        "admin_kreise_bildungsgang.html", form=form, bildungsgang=bildungsgang,
+    )
 
 
 @bp.route("/vorlagen")

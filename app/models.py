@@ -132,6 +132,28 @@ BILDUNGSGANG_CHOICES = [
 # wird von der LK separat nachgepflegt, siehe ImportDaZ-Vorlage).
 SPRACHNIVEAU_CHOICES = ["A0", "A1", "A2", "B1", "B2", "C1"]
 
+# Kreise/kreisfreie Staedte Schleswig-Holstein, exakt wie sie die OpenPLZ-API
+# im Feld "district.name" liefert (empirisch geprueft) - wird fuer die
+# Bezirksfachklassen-Zuordnung je Bildungsgang genutzt (welche Kreise duerfen
+# fuer welchen Bildungsgang an diese Schule?), siehe BildungsgangKreis.
+KREISE_SH = [
+    "Dithmarschen",
+    "Flensburg, Stadt",
+    "Herzogtum Lauenburg",
+    "Kiel, Landeshauptstadt",
+    "Lübeck, Hansestadt",
+    "Neumünster, Stadt",
+    "Nordfriesland",
+    "Ostholstein",
+    "Pinneberg",
+    "Plön",
+    "Rendsburg-Eckernförde",
+    "Schleswig-Flensburg",
+    "Segeberg",
+    "Steinburg",
+    "Stormarn",
+]
+
 
 # ---------------------------------------------------------------------------
 # Modelle
@@ -322,6 +344,22 @@ class KlasseBildungsgang(db.Model):
 
     __table_args__ = (
         db.UniqueConstraint("klasse_id", "bildungsgang", name="uq_klasse_bildungsgang"),
+    )
+
+
+class BildungsgangKreis(db.Model):
+    """Welche Kreise/kreisfreien Staedte duerfen fuer einen Bildungsgang an
+    dieser Schule beschult werden (Bezirksfachklassen-Regelung des SHIBB,
+    aendert sich regelmaessig - daher hier admin-pflegbar statt hart im
+    Code). Kein Eintrag fuer einen Bildungsgang = noch nicht konfiguriert,
+    die PLZ-Pruefung faellt dann auf die globale PlzRule zurueck.
+    """
+    id = db.Column(db.Integer, primary_key=True)
+    bildungsgang = db.Column(db.String(200), nullable=False)
+    kreis = db.Column(db.String(100), nullable=False)  # siehe KREISE_SH
+
+    __table_args__ = (
+        db.UniqueConstraint("bildungsgang", "kreis", name="uq_bildungsgang_kreis"),
     )
 
 

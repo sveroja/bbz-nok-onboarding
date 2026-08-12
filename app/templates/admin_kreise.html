@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Kreise je Bildungsgang{% endblock %}
+{% block content %}
+<h1>Kreise je Bildungsgang</h1>
+<p class="text-muted">
+  Bezirksfachklassen-Regelung des SHIBB: legt fest, aus welchen Kreisen/
+  kreisfreien Städten SuS für einen Bildungsgang an dieser Schule aufgenommen
+  werden dürfen. Ändert sich regelmäßig - daher hier pflegbar statt fest im
+  Code. Ohne Eintrag greift bei der PLZ-Prüfung die alte globale PLZ-Regel
+  als Rückfall.
+</p>
+
+<div class="list-group">
+  {% for bg in bildungsgaenge %}
+  <a href="{{ url_for('admin.kreise_bildungsgang', bildungsgang=bg) }}"
+     class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+    {{ bg }}
+    {% if bg in konfiguriert %}
+      <span class="badge bg-success">konfiguriert</span>
+    {% else %}
+      <span class="badge bg-secondary">nicht konfiguriert (Rückfall auf globale Regel)</span>
+    {% endif %}
+  </a>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -25,7 +25,7 @@ from flask import current_app
 
 from .extensions import db
 from .models import Registration, PlzRule
-from .plz import check_plz_against_rule
+from .plz import check_kreis_fuer_bildungsgang
 
 logger = logging.getLogger(__name__)
 
@@ -372,10 +372,14 @@ def sync_submissions(per_page: int = 100, max_pages: int = 100) -> dict:
 
             try:
                 reg = submission_to_registration(sub)
-                # PLZ-Check (best effort)
-                if reg.plz and rule:
+                # PLZ-Check (best effort): je Bildungsgang die passenden
+                # Kreise (Bezirksfachklassen), sonst Rueckfall auf die
+                # globale PlzRule.
+                if reg.plz:
                     try:
-                        reg.plz_ok = check_plz_against_rule(reg.plz, rule)
+                        reg.plz_ok = check_kreis_fuer_bildungsgang(
+                            reg.plz, reg.beruf, rule
+                        )
                         reg.plz_checked_at = datetime.now(timezone.utc)
                     except Exception:
                         logger.exception("PLZ-Check fehlgeschlagen für %s",

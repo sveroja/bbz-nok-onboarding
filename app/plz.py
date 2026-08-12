@@ -102,3 +102,36 @@ def check_plz_against_rule(plz: str, rule) -> Optional[bool]:
         return False
 
     return True
+
+
+def check_kreis_fuer_bildungsgang(plz: str, bildungsgang: str, fallback_rule) -> Optional[bool]:
+    """PLZ-Pruefung auf Basis der Bezirksfachklassen-Zuordnung je Bildungsgang
+    (BildungsgangKreis, admin-pflegbar unter Admin -> Kreise je Bildungsgang).
+
+    Ist fuer den Bildungsgang noch keine Kreis-Liste hinterlegt, faellt die
+    Pruefung auf die alte globale PlzRule zurueck (fallback_rule) - so
+    funktioniert der Sync auch fuer noch nicht konfigurierte Bildungsgaenge
+    weiter, ohne dass jemand alle ~60 Berufe sofort pflegen muss.
+
+    Rueckgabe wie check_plz_against_rule: True/False/None (None = unklar).
+    """
+    from .models import BildungsgangKreis  # lokaler Import, zirkulaer sonst
+
+    erlaubte_kreise = {
+        bk.kreis for bk in
+        BildungsgangKreis.query.filter_by(bildungsgang=bildungsgang).all()
+    }
+    if not erlaubte_kreise:
+        return check_plz_against_rule(plz, fallback_rule)
+
+    timeout = current_app.config.get("OPENPLZ_TIMEOUT", 5)
+    data_plz = _fetch_locality(plz, timeout)
+    if not data_plz:
+        return None
+
+    kreis_plz = (data_plz.get("district") or {}).get("name")
+    logger.debug(
+        "Kreis-Check: %s (Kreis=%s) fuer Bildungsgang %r, erlaubt: %s",
+        plz, kreis_plz, bildungsgang, erlaubte_kreise,
+    )
+    return kreis_plz in erlaubte_kreise

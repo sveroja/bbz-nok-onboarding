@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Kreise: {{ bildungsgang }}{% endblock %}
+{% block content %}
+<h1>Kreise für "{{ bildungsgang }}"</h1>
+<p class="text-muted">
+  Häkchen = SuS aus diesem Kreis/dieser kreisfreien Stadt dürfen diesen
+  Bildungsgang an dieser Schule besuchen. Keine Häkchen gesetzt = noch nicht
+  konfiguriert, PLZ-Prüfung fällt auf die globale PLZ-Regel zurück.
+</p>
+
+<form method="post" novalidate>
+  {{ form.hidden_tag() }}
+  <div class="mb-3">
+    {% for subfield in form.kreise %}
+      <div class="form-check">
+        {{ subfield(class="form-check-input") }}
+        {{ subfield.label(class="form-check-label") }}
+      </div>
+    {% endfor %}
+  </div>
+  <a href="{{ url_for('admin.kreise_view') }}" class="btn btn-link">Zurück</a>
+  {{ form.submit(class="btn btn-primary") }}
+</form>
+{% endblock %}

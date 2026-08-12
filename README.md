@@ -141,6 +141,21 @@ verwalten"**.
 - Rein organisatorisch, keine Zugriffskontrolle: jede LK sieht und
   verwaltet alle Klassen und Anmeldungen, unabhängig vom zugeordneten Zug.
 
+### Kreise je Bildungsgang (Bezirksfachklassen)
+
+Admin → „Kreise je Bildungsgang" — legt fest, aus welchen Kreisen/kreisfreien
+Städten SuS für einen bestimmten Bildungsgang aufgenommen werden dürfen
+(Bezirksfachklassen-Regelung des SHIBB, siehe deren jährlich aktualisiertes
+"Verzeichnis der Bezirksfachklassen in Schleswig-Holstein" – ändert sich
+regelmäßig, daher hier pflegbar statt fest im Code).
+
+- Pro Bildungsgang eine eigene Liste erlaubter Kreise (Checkboxen).
+- Ist für einen Bildungsgang noch nichts konfiguriert, fällt die PLZ-Prüfung
+  beim Sync auf die alte globale PLZ-Regel zurück (Admin → PLZ-Regel) – so
+  müssen nicht sofort alle Bildungsgänge gepflegt sein.
+- Die PLZ-Prüfung selbst läuft weiterhin automatisch beim Sync über die
+  OpenPLZ-API.
+
 ### Backup der Datenbank
 
 ```bash

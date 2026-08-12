@@ -16,7 +16,7 @@ from wtforms.validators import (
 )
 from wtforms.widgets import ListWidget, CheckboxInput
 
-from .models import BILDUNGSGANG_CHOICES, SPRACHNIVEAU_CHOICES
+from .models import BILDUNGSGANG_CHOICES, KREISE_SH, SPRACHNIVEAU_CHOICES
 
 LOGO_MAX_SIZE_MB = 2
 
@@ -98,6 +98,20 @@ class RegistrationLKForm(FlaskForm):
     )
     sprachniveau_nachweis = BooleanField(
         "Nachweis (Zertifikat) vorhanden", validators=[OptionalValidator()],
+    )
+    submit = SubmitField("Speichern")
+
+
+class BildungsgangKreisForm(FlaskForm):
+    """Welche Kreise/kreisfreien Staedte duerfen fuer einen Bildungsgang an
+    dieser Schule beschult werden (Bezirksfachklassen-Regelung SHIBB).
+    """
+    kreise = SelectMultipleField(
+        "Erlaubte Kreise/kreisfreie Städte",
+        choices=[(k, k) for k in KREISE_SH],
+        option_widget=CheckboxInput(),
+        widget=ListWidget(prefix_label=False),
+        validators=[OptionalValidator()],
     )
     submit = SubmitField("Speichern")
 
