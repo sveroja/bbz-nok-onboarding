@@ -70,7 +70,7 @@ docker compose up -d --build
 docker compose logs -f app
 ```
 
-App läuft auf `http://<host>:8000`. Login als `admin` oder `lehrer` mit den
+App läuft auf `http://<host>:8800`. Login als `admin` oder `lehrer` mit den
 Passwörtern aus `.env`.
 
 ## Konfiguration (`.env`)

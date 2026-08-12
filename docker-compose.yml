@@ -13,11 +13,12 @@ services:
     volumes:
       - schule_data:/app/instance
 
-    # Direkt erreichbar auf Port 8000 des Hosts.
+    # Direkt erreichbar auf Port 8800 des Hosts (8000 ist durch einen
+    # anderen Dienst belegt). Container-intern bleibt es bei 8000.
     # Wenn später ein Reverse Proxy davor kommt:
     # diese ports-Sektion entfernen und in ein gemeinsames Docker-Netz hängen.
     ports:
-      - "8000:8000"
+      - "8800:8000"
 
     # Healthcheck – Compose meldet "unhealthy" wenn die App nicht antwortet
     healthcheck:
