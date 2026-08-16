@@ -260,12 +260,16 @@ def build_stammdatenblatt_pdf(regs) -> io.BytesIO:
     if not path.exists():
         raise FileNotFoundError("Stammdatenblatt-Vorlage wurde noch nicht hochgeladen.")
 
-    reader = PdfReader(str(path))
-    if len(reader.pages) < 2:
+    if len(PdfReader(str(path)).pages) < 2:
         raise ValueError("Stammdatenblatt-Vorlage hat weniger als 2 Seiten.")
 
     writer = PdfWriter()
     for r in regs:
+        # Frischer Reader je Registrierung: pypdf haelt beim wiederholten
+        # append() desselben Reader-Objekts intern dieselben geklonten
+        # PageObjects vor, wodurch sich die Overlays mehrerer SuS auf
+        # denselben Seiten summiert haetten statt getrennt zu bleiben.
+        reader = PdfReader(str(path))
         writer.append(reader)
         idx = len(writer.pages) - 2
         overlay = PdfReader(_build_overlay(r))
