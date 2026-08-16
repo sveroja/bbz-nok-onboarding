@@ -256,6 +256,12 @@ def submission_to_registration(submission: dict) -> Registration:
         logger.info("Submission %s hat %d unbekannte Felder: %s",
                     reg.external_id, len(unmapped), list(unmapped.keys()))
 
+    # Sektion-1-Felder (Klassendaten) automatisch vorbefuellen, damit der
+    # Kopf des Stammdatenblatts nicht leer bleibt, falls die LK sie nicht
+    # extra nachpflegt. Beides bleibt ueber "Bearbeiten" manuell aenderbar.
+    reg.aufnahmedatum = reg.ausbildung_von  # Beginn der Ausbildung (Sektion 5)
+    reg.eintrittsdatum = date.today()       # Eintritt in unsere Schule = heute (Sync-Tag)
+
     return reg
 
 

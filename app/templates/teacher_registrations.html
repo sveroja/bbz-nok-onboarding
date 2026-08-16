@@ -5,8 +5,8 @@
   <div>
     <h1 class="mb-0">Anmeldungen</h1>
     <p class="text-muted mb-0">
-      Bereich: <strong>{{ aktive_klasse.name if aktive_klasse else "alle" }}</strong>
-      <a href="{{ url_for('teacher.bereich') }}" class="ms-1">Bereich wechseln</a>
+      Klasse: <strong>{{ aktive_klasse.name if aktive_klasse else "alle" }}</strong>
+      <a href="{{ url_for('teacher.bereich') }}" class="ms-1">Klasse wechseln</a>
     </p>
   </div>
   <div class="d-flex gap-2">
@@ -39,7 +39,7 @@
   <div class="card-body">
     <h5 class="card-title">Exporte</h5>
     <p class="card-text text-muted">
-      Beziehen sich immer auf die aktuell angezeigten Anmeldungen (Bereich +
+      Beziehen sich immer auf die aktuell angezeigten Anmeldungen (Klasse +
       Zug-Filter oben).
     </p>
     <div class="d-flex flex-wrap gap-2 align-items-end">

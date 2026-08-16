@@ -1,16 +1,22 @@
 """Koordinaten-Layout fuer das Ausfuellen des Stammdatenblatt-PDFs.
 
 Das PDF hat keine ausfuellbaren Formularfelder (kein AcroForm) - Text wird
-daher als Overlay an fest ermittelten Positionen platziert (per pdfplumber
-aus dem Original extrahiert: Label-Endposition + kleiner Abstand).
-Seitengroesse: 595.32 x 841.92 pt (A4). Die y-Werte sind die "bottom"-Koordinate der jeweiligen Label-Textzeile aus
-pdfplumber (Abstand von der Seitenoberkante), dienen als Basislinie fuer den
-neuen Text/das Kreuzchen direkt daneben. Umrechnung in PDF-Koordinaten
+daher als Overlay an fest ermittelten Positionen platziert.
+Seitengroesse: 595.32 x 841.92 pt (A4). Umrechnung in PDF-Koordinaten
 (Ursprung unten links) beim Zeichnen: y_pdf = PAGE_HEIGHT - y.
 
 Format je Eintrag:
   TEXT_FIELDS:      (seite, x, y, attr, fontsize)
   CHECKBOX_FIELDS:  (seite, x, y, attr, erwarteter_wert)
+
+CHECKBOX_FIELDS-Koordinaten sind KEINE Schaetzungen mehr (Label-Ende +
+Abstand), sondern per pdfplumber aus den tatsaechlich im PDF gezeichneten
+Kaestchen-Rechtecken ermittelt (Mittelpunkt, mit kleinem Nudge nach unten
+fuer die Basislinie). Frueher lagen mehrere Kreuze systematisch 8-35pt zu
+weit links (z.B. IHK/HK/LWK landeten direkt auf dem Label-Text statt im
+Kaestchen), weil "Label-Ende + fester Abstand" bei diesem Formular keine
+verlaessliche Heuristik ist - die Kaestchen-Spalten sind teils deutlich
+vom zugehoerigen Label abgesetzt.
 """
 
 PAGE_WIDTH = 595.32
@@ -74,9 +80,12 @@ TEXT_FIELDS = [
     (1, 387, 729.2, "fachrichtung", FONT_SIZE),
 
     # Seite 2 - Sektion 6 (Werdegang)
+    # jahr_verlassen/klassenstufe: Box-Koordinaten (x0) per pdfplumber
+    # verifiziert - lagen vorher deutlich zu weit links (Box beginnt erst
+    # bei x=288.9 bzw. x=514.5, nicht direkt hinter dem Fragetext).
     (2, 522, 447.1, "letzte_schule_kurzform", FONT_SIZE),
-    (2, 281, 476.1, "jahr_verlassen", FONT_SIZE),
-    (2, 509, 476.1, "klassenstufe", FONT_SIZE),
+    (2, 293, 476.1, "jahr_verlassen", FONT_SIZE),
+    (2, 519, 476.1, "klassenstufe", FONT_SIZE),
     (2, 386, 565.4, "allgemeinbildender_abschluss", FONT_SIZE),  # eigene Kurzform-Box, nicht die von letzte_schule
 
     # Sektion 7 (Schulabschluesse am BBZ)
@@ -87,57 +96,64 @@ TEXT_FIELDS = [
 ]
 
 # (Seite, x, y, Attribut, erwarteter Wert fuer "X")
-# x liegt jeweils INNERHALB der jeweiligen Kaestchen-Box (Mittelpunkt), nicht
-# dahinter - bei den schmalen JA/NEIN-Boxen auf Seite 2 fuehrte "Label-Ende +
-# fester Abstand" in Runde 1 dazu, dass das Kreuz neben statt im Kaestchen
-# landete.
+# x/y = Mittelpunkt des tatsaechlich gezeichneten Kaestchens (per pdfplumber
+# aus den Rechteck-/Linien-Koordinaten der Vorlage ermittelt), y zusaetzlich
+# +3 fuer die Basislinie (drawString zeichnet ab der Unterkante des "X").
 CHECKBOX_FIELDS = [
     # Geschlecht
-    (1, 225, 155.4, "geschlecht", "maennlich"),
-    (1, 325, 155.4, "geschlecht", "weiblich"),
-    (1, 410, 155.4, "geschlecht", "divers"),
-    (1, 524, 155.4, "geschlecht", "keine_angabe"),
+    (1, 249.8, 154.0, "geschlecht", "maennlich"),
+    (1, 348.7, 154.0, "geschlecht", "weiblich"),
+    (1, 434.8, 154.0, "geschlecht", "divers"),
+    (1, 547.1, 154.0, "geschlecht", "keine_angabe"),
     # DaZ-Bedarf
-    (1, 375, 284.7, "daz_bedarf", True),
-    (1, 449, 283.5, "daz_bedarf", False),
-    # Konfession
-    (1, 422, 341.9, "konfession", "ev"),
-    (1, 443, 341.9, "konfession", "rk"),
-    (1, 466, 341.9, "konfession", "isl"),
-    # Foerderbedarf
-    (1, 421, 366.9, "foerderbedarf", True),
-    (1, 448, 366.9, "foerderbedarf", False),
+    (1, 391.4, 281.4, "daz_bedarf", True),
+    (1, 456.9, 281.4, "daz_bedarf", False),
+    # Konfession (Kaestchen teilt sich die Zelle mit dem Label - eng, aber
+    # per Zellgrenzen bestaetigt: ev-Zelle 403.4-423.8, rk 423.8-445.9,
+    # isl 445.9-468.0)
+    (1, 421, 344.9, "konfession", "ev"),
+    (1, 443, 344.9, "konfession", "rk"),
+    (1, 465, 344.9, "konfession", "isl"),
+    # Foerderbedarf (ja-Zelle 402.5-423.9, nein-Zelle 423.9-446.0 - "nein"
+    # fuellt die Zelle fast komplett, kaum Platz fuers Kreuz)
+    (1, 421, 369.9, "foerderbedarf", True),
+    (1, 445, 369.9, "foerderbedarf", False),
     # Eltern-Rollen
-    (1, 538, 470.2, "eltern_ist_vater", True),
-    (1, 538, 491.4, "eltern_ist_mutter", True),
-    (1, 538, 512.7, "eltern_ist_ansprechpartner", True),
-    (1, 538, 533.9, "eltern_hauptwohnsitz", True),
-    # Kammer
-    (1, 426, 604.8, "betrieb_kammer", "IHK"),
-    (1, 512, 604.8, "betrieb_kammer", "LWK"),
-    (1, 426, 616.5, "betrieb_kammer", "HK"),
+    (1, 547.1, 468.0, "eltern_ist_vater", True),
+    (1, 547.1, 489.5, "eltern_ist_mutter", True),
+    (1, 547.1, 510.7, "eltern_ist_ansprechpartner", True),
+    (1, 547.1, 532.0, "eltern_hauptwohnsitz", True),
+    # Kammer (IHK/HK-Kaestchen liegen NICHT direkt hinter dem Label, sondern
+    # deutlich weiter rechts in einer eigenen Spalte, gleiche x wie LWK)
+    (1, 457.9, 602.0, "betrieb_kammer", "IHK"),
+    (1, 547.1, 602.0, "betrieb_kammer", "LWK"),
+    (1, 457.9, 625.5, "betrieb_kammer", "HK"),
     # Praktikant/Umschueler
-    (1, 93, 768.8, "praktikant", True),
-    (1, 187, 769.1, "umschueler", True),
-    (1, 336, 790.9, "umschulungsvertrag_vorhanden", True),
-    (1, 510, 790.9, "kostenuebernahme_vorhanden", True),
-    # Seite 2: Abschluss beendet
-    (2, 443, 504.8, "mit_abschluss_beendet", True),
-    (2, 492, 504.8, "mit_abschluss_beendet", False),
-    # Art des Abschlusses (VB01-VB04)
-    (2, 404, 533.8, "art_abschluss_letzte_schule", "VB01"),
-    (2, 447, 533.8, "art_abschluss_letzte_schule", "VB02"),
-    (2, 492, 533.8, "art_abschluss_letzte_schule", "VB03"),
-    (2, 537, 533.8, "art_abschluss_letzte_schule", "VB04"),
+    (1, 102.4, 767.0, "praktikant", True),
+    (1, 196.5, 767.0, "umschueler", True),
+    (1, 348.7, 789.0, "umschulungsvertrag_vorhanden", True),
+    (1, 524.6, 789.0, "kostenuebernahme_vorhanden", True),
+    # Seite 2: alle Kaestchen hier teilen sich die Zelle mit dem Label (wie
+    # Konfession/Foerderbedarf auf Seite 1) - Label fuellt die Zelle fast
+    # komplett, das Kreuz muss an den rechten Zellenrand statt in die Mitte
+    # (sonst landet es direkt auf dem Text "JA"/"VB01" etc.).
+    # Abschluss beendet (JA-Zelle 423.8-445.9, NEIN-Zelle 468.0-490.1)
+    (2, 443, 502.0, "mit_abschluss_beendet", True),
+    (2, 487, 502.0, "mit_abschluss_beendet", False),
+    # Art des Abschlusses (VB01-VB04, Zellen wie oben je 22.1pt breit)
+    (2, 399, 531.0, "art_abschluss_letzte_schule", "VB01"),
+    (2, 443, 531.0, "art_abschluss_letzte_schule", "VB02"),
+    (2, 487, 531.0, "art_abschluss_letzte_schule", "VB03"),
+    (2, 533, 531.0, "art_abschluss_letzte_schule", "VB04"),
     # LRS
-    (2, 400, 594.1, "lrs", True),
-    (2, 449, 594.1, "lrs", False),
-    # ESA-Englisch
-    (2, 466, 672.4, "esa_5_jahre_englisch", True),
-    (2, 514, 672.4, "esa_5_jahre_englisch", False),
-    (2, 466, 693.8, "esa_englisch_ausreichend", True),
-    (2, 514, 693.8, "esa_englisch_ausreichend", False),
+    (2, 399, 591.5, "lrs", True),
+    (2, 443, 591.5, "lrs", False),
+    # ESA-Englisch (JA-Zelle 445.9-468.0, NEIN-Zelle 490.1-513.6)
+    (2, 465, 670.5, "esa_5_jahre_englisch", True),
+    (2, 511, 670.5, "esa_5_jahre_englisch", False),
+    (2, 465, 691.8, "esa_englisch_ausreichend", True),
+    (2, 511, 691.8, "esa_englisch_ausreichend", False),
     # 2. Fremdsprache
-    (2, 466, 764.1, "zweite_fremdsprache", True),
-    (2, 514, 764.1, "zweite_fremdsprache", False),
+    (2, 465, 762.2, "zweite_fremdsprache", True),
+    (2, 511, 762.2, "zweite_fremdsprache", False),
 ]
