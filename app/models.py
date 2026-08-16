@@ -120,12 +120,12 @@ STATUS_CHOICES = [
 # Anmeldungen automatisch den passenden Klassen/Zuegen zugeordnet werden
 # koennen. Bei neuen Bildungsgaengen: hier UND in Fluent Forms ergaenzen.
 BILDUNGSGANG_CHOICES = [
-    "Fachinformatiker",
-    "Informationselektroniker",
-    "Elektroniker Energie- und Gebäudetechnik",
-    "Elektroniker für Betriebstechnik",
-    "Elektriker Fachrichtung Betriebstechnik",
-    "IT-Systemelektroniker",
+    "Fachinformatiker/Fachinformatikerin",
+    "Informationselektroniker/Informationselektronikerin",
+    "Elektroniker/Elektronikerin für Energie- und Gebäudetechnik",
+    "Elektroniker/Elektronikerin für Betriebstechnik",
+    "Elektriker/Elektrikerin Fachrichtung Betriebstechnik",
+    "IT-Systemelektroniker/IT-Systemelektronikerin",
 ]
 
 # DaZ-Sprachniveau (steht nicht im Aufnahmebogen selbst, nur "DaZ ja/nein" -

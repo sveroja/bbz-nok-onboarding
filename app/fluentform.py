@@ -375,10 +375,16 @@ def sync_submissions(per_page: int = 100, max_pages: int = 100) -> dict:
                 # PLZ-Check (best effort): je Bildungsgang die passenden
                 # Kreise (Bezirksfachklassen), sonst Rueckfall auf die
                 # globale PlzRule.
-                if reg.plz:
+                #
+                # Massgeblich ist laut SHIBB-Bezirksfachklassenregelung der
+                # Kreis der AUSBILDUNGSSTAETTE (Betrieb), nicht der Wohnort -
+                # Wohnort-PLZ nur als Rueckfall fuer schulische Bildungsgaenge
+                # ohne Ausbildungsbetrieb (BOS/FOS/etc., kein betrieb_plz).
+                pruef_plz = reg.betrieb_plz or reg.plz
+                if pruef_plz:
                     try:
                         reg.plz_ok = check_kreis_fuer_bildungsgang(
-                            reg.plz, reg.beruf, rule
+                            pruef_plz, reg.beruf, rule
                         )
                         reg.plz_checked_at = datetime.now(timezone.utc)
                     except Exception:
