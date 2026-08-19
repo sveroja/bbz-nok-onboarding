@@ -110,15 +110,18 @@
           </span>
         {% endif %}
       </td>
-      <td>{{ r.beruf }}</td>
+      <td>{{ beruf_namen.get(r.beruf, r.beruf) }}</td>
       <td>
         <form method="post" action="{{ url_for('teacher.assign_zug', reg_id=r.id) }}">
           {{ action_form.hidden_tag() }}
           {% set passende_klassen = beruf_to_klassen.get(r.beruf) or klassen %}
+          {% set vorschlag_id = zug_vorschlaege.get(r.id) %}
           <select name="zug_id" class="form-select form-select-sm" onchange="this.form.submit()">
             <option value="">– nicht zugeordnet –</option>
             {% for k in passende_klassen %}
-              <option value="{{ k.id }}" {% if r.zug_id == k.id %}selected{% endif %}>{{ k.name }}</option>
+              <option value="{{ k.id }}" {% if r.zug_id == k.id or (not r.zug_id and vorschlag_id == k.id) %}selected{% endif %}>
+                {{ k.name }}{% if not r.zug_id and vorschlag_id == k.id %} (Vorschlag){% endif %}
+              </option>
             {% endfor %}
           </select>
         </form>

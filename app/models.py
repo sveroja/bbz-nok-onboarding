@@ -215,6 +215,12 @@ class Registration(db.Model):
     sprachniveau = db.Column(db.String(5), nullable=True)    # SPRACHNIVEAU_CHOICES
     sprachniveau_nachweis = db.Column(db.Boolean, nullable=True)  # Zertifikat vorhanden?
 
+    # FF-Felder "zug_bool"/"zug_value": Betrieb/SuS geben im Aufnahmebogen an,
+    # ob vor Ort schon in Züge unterteilt wird, und falls ja welcher (a-d) -
+    # dient der LK nur als Vorauswahl-Hinweis fuer die manuelle zug_id-Zuordnung.
+    zug_bool = db.Column(db.Boolean, nullable=True)
+    zug_value = db.Column(db.String(5), nullable=True)
+
     # -- Sektion 3: Adress-/Kontaktdaten (SuS) -------------------------------
     wohnt_bei = db.Column(db.String(200), nullable=True)
     strasse = db.Column(db.String(200), nullable=True)
@@ -348,19 +354,20 @@ class Abteilung(db.Model):
 
 class Bildungsgang(db.Model):
     """Ein Ausbildungsberuf/Bildungsgang der Schule (ersetzt die frueher
-    fest im Code hinterlegte BILDUNGSGANG_CHOICES-Liste). `name` muss exakt
-    mit dem "Beruf"-Dropdown in Fluent Forms uebereinstimmen (siehe README),
-    damit Anmeldungen automatisch den passenden Klassen/Zuegen zugeordnet
-    werden koennen. Bei neuen Bildungsgaengen: hier UND in Fluent Forms
-    ergaenzen. Admin-pflegbar - siehe /admin/bildungsgaenge.
+    fest im Code hinterlegte BILDUNGSGANG_CHOICES-Liste). `code` muss exakt
+    mit dem VALUE des "Beruf"-Dropdowns in Fluent Forms uebereinstimmen
+    (siehe README), `name` ist der Klartext fuers Label/die Anzeige im Tool.
+    Bei neuen Bildungsgaengen: hier UND in Fluent Forms ergaenzen.
+    Admin-pflegbar - siehe /admin/bildungsgaenge.
 
     Die Zuordnung zu Klassen (KlasseBildungsgang), Kreisen (BildungsgangKreis)
     und die Anmeldungen selbst (Registration.beruf) referenzieren weiterhin
-    den Namen als Freitext, nicht diese id - so bleibt der Beruf-Abgleich
+    den Code als Freitext, nicht diese id - so bleibt der Beruf-Abgleich
     beim Sync ein reiner Textvergleich, unabhaengig von dieser Verwaltung.
     """
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(200), unique=True, nullable=False)
+    code = db.Column(db.String(100), unique=True, nullable=True)
     abteilung_id = db.Column(db.Integer, db.ForeignKey("abteilung.id"), nullable=True)
     abteilung = db.relationship("Abteilung", backref="bildungsgang")
 

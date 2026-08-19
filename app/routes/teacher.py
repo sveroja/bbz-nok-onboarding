@@ -11,7 +11,7 @@ from flask_login import login_required, current_user
 
 from .. import exports
 from ..extensions import db, limiter
-from ..models import Abteilung, Registration, Klasse, KlasseBildungsgang
+from ..models import Abteilung, Bildungsgang, Registration, Klasse, KlasseBildungsgang
 from ..decorators import role_required
 from ..forms import ActionForm, KlasseForm, RegistrationLKForm
 from ..fluentform import sync_submissions, delete_remote_submission
@@ -28,6 +28,26 @@ def _beruf_to_klassen_map(klassen):
         for kb in k.bildungsgaenge:
             mapping[kb.bildungsgang].append(k)
     return mapping
+
+
+def _zug_vorschlaege(regs, beruf_to_klassen, klassen):
+    """{Registration.id: Klasse.id} - Vorschlag fuer die Zug-Vorauswahl, wenn
+    die LK vor Ort laut Aufnahmebogen (zug_bool/zug_value) schon einen Zug
+    (a-d) vergeben hat. Nur ein Vorschlag fuers Dropdown, setzt reg.zug_id
+    nicht - die tatsaechliche Zuordnung bleibt eine manuelle LK-Aktion.
+    Match ueber die dokumentierte Namenskonvention "...a"/"...b"/... (siehe
+    README, Abschnitt Klassen/Zuege verwalten).
+    """
+    vorschlaege = {}
+    for r in regs:
+        if r.zug_id or not r.zug_bool or not r.zug_value:
+            continue
+        passende_klassen = beruf_to_klassen.get(r.beruf) or klassen
+        for k in passende_klassen:
+            if k.name.lower().endswith(r.zug_value.strip().lower()):
+                vorschlaege[r.id] = k.id
+                break
+    return vorschlaege
 
 
 def _find_duplicate_ids():
@@ -109,6 +129,8 @@ def registrations():
     klassen = Klasse.query.order_by(Klasse.name).all()
     beruf_to_klassen = _beruf_to_klassen_map(klassen)
     duplicate_ids = _find_duplicate_ids()
+    beruf_namen = {b.code: b.name for b in Bildungsgang.query.all() if b.code}
+    zug_vorschlaege = _zug_vorschlaege(regs, beruf_to_klassen, klassen)
 
     # ActionForm einmal für CSRF-Token in jedem Zeilen-Button
     action_form = ActionForm()
@@ -118,6 +140,8 @@ def registrations():
         action_form=action_form,
         klassen=klassen,
         beruf_to_klassen=beruf_to_klassen,
+        beruf_namen=beruf_namen,
+        zug_vorschlaege=zug_vorschlaege,
         zug_filter=zug_filter,
         aktive_klasse=aktive_klasse,
         duplicate_ids=duplicate_ids,
@@ -312,6 +336,7 @@ def delete_klasse(klasse_id):
 @role_required("teacher", "admin")
 def export():
     regs, _aktive_klasse, _zug_filter = _current_filtered_regs()
+    beruf_namen = {b.code: b.name for b in Bildungsgang.query.all() if b.code}
 
     output = io.StringIO()
     writer = csv.writer(output, delimiter=";")
@@ -326,7 +351,7 @@ def export():
             r.created_at.strftime("%Y-%m-%d %H:%M") if r.created_at else "",
             r.vorname,
             r.nachname,
-            r.beruf,
+            beruf_namen.get(r.beruf, r.beruf),
             r.zug.name if r.zug else "",
             r.geburtsdatum.isoformat() if r.geburtsdatum else "",
             r.strasse,

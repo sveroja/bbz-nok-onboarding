@@ -88,7 +88,7 @@ def kreise_view():
         bk.bildungsgang
         for bk in BildungsgangKreis.query.with_entities(BildungsgangKreis.bildungsgang).distinct()
     }
-    bildungsgaenge = [b.name for b in Bildungsgang.query.order_by(Bildungsgang.name).all()]
+    bildungsgaenge = Bildungsgang.query.order_by(Bildungsgang.name).all()
     return render_template(
         "admin_kreise.html",
         bildungsgaenge=bildungsgaenge,
@@ -96,24 +96,25 @@ def kreise_view():
     )
 
 
-@bp.route("/kreise/<bildungsgang>", methods=["GET", "POST"])
+@bp.route("/kreise/<code>", methods=["GET", "POST"])
 @login_required
 @role_required("admin")
-def kreise_bildungsgang(bildungsgang):
-    if not Bildungsgang.query.filter_by(name=bildungsgang).first():
+def kreise_bildungsgang(code):
+    bildungsgang = Bildungsgang.query.filter_by(code=code).first()
+    if not bildungsgang:
         flash("Unbekannter Bildungsgang.", "error")
         return redirect(url_for("admin.kreise_view"))
 
     form = BildungsgangKreisForm()
-    bestehende = BildungsgangKreis.query.filter_by(bildungsgang=bildungsgang).all()
+    bestehende = BildungsgangKreis.query.filter_by(bildungsgang=code).all()
 
     if form.validate_on_submit():
         for bk in bestehende:
             db.session.delete(bk)
         for kreis in form.kreise.data:
-            db.session.add(BildungsgangKreis(bildungsgang=bildungsgang, kreis=kreis))
+            db.session.add(BildungsgangKreis(bildungsgang=code, kreis=kreis))
         db.session.commit()
-        flash(f"Kreise für '{bildungsgang}' gespeichert.", "success")
+        flash(f"Kreise für '{bildungsgang.name}' gespeichert.", "success")
         return redirect(url_for("admin.kreise_view"))
 
     if request.method == "GET":
@@ -198,15 +199,18 @@ def bildungsgang_hinzufuegen():
     form = BildungsgangForm()
     if form.validate_on_submit():
         name = form.name.data.strip()
+        code = form.code.data.strip()
         if Bildungsgang.query.filter_by(name=name).first():
             flash(f"Bildungsgang '{name}' existiert bereits.", "error")
+        elif Bildungsgang.query.filter_by(code=code).first():
+            flash(f"Code '{code}' wird bereits verwendet.", "error")
         else:
             abteilung_id = form.abteilung_id.data if form.abteilung_id.raw_data and form.abteilung_id.raw_data[0] else None
-            db.session.add(Bildungsgang(name=name, abteilung_id=abteilung_id))
+            db.session.add(Bildungsgang(name=name, code=code, abteilung_id=abteilung_id))
             db.session.commit()
             flash(f"Bildungsgang '{name}' angelegt.", "success")
     else:
-        for error in form.name.errors:
+        for error in form.name.errors + form.code.errors:
             flash(error, "error")
     return redirect(url_for("admin.bildungsgaenge_view"))
 

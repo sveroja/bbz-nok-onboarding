@@ -25,24 +25,34 @@ NEW_REGISTRATION_COLUMNS = [
     ("zug_id", "INTEGER REFERENCES klasse(id)"),
     ("sprachniveau", "VARCHAR(5)"),
     ("sprachniveau_nachweis", "BOOLEAN"),
+    ("zug_bool", "BOOLEAN"),
+    ("zug_value", "VARCHAR(5)"),
+]
+
+NEW_BILDUNGSGANG_COLUMNS = [
+    ("code", "VARCHAR(100)"),
 ]
 
 
 def _ensure_new_columns():
-    """Ergaenzt Spalten, die durch spaetere Features zur bestehenden
-    registration-Tabelle dazugekommen sind. db.create_all() legt nur fehlende
-    Tabellen an, aendert aber keine bestehenden - daher hier per ALTER TABLE.
+    """Ergaenzt Spalten, die durch spaetere Features zu bestehenden Tabellen
+    dazugekommen sind. db.create_all() legt nur fehlende Tabellen an, aendert
+    aber keine bestehenden - daher hier per ALTER TABLE.
     Idempotent: prueft vorher, ob die Spalte schon existiert.
     """
     inspector = inspect(db.engine)
-    existing = {col["name"] for col in inspector.get_columns("registration")}
-    for name, ddl_type in NEW_REGISTRATION_COLUMNS:
-        if name not in existing:
-            db.session.execute(text(
-                f"ALTER TABLE registration ADD COLUMN {name} {ddl_type}"
-            ))
-            db.session.commit()
-            click.echo(f"Spalte '{name}' zu registration ergänzt.")
+    for table, columns in (
+        ("registration", NEW_REGISTRATION_COLUMNS),
+        ("bildungsgang", NEW_BILDUNGSGANG_COLUMNS),
+    ):
+        existing = {col["name"] for col in inspector.get_columns(table)}
+        for name, ddl_type in columns:
+            if name not in existing:
+                db.session.execute(text(
+                    f"ALTER TABLE {table} ADD COLUMN {name} {ddl_type}"
+                ))
+                db.session.commit()
+                click.echo(f"Spalte '{name}' zu {table} ergänzt.")
 
 
 @click.command("init-db")

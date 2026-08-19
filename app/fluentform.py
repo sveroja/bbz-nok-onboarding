@@ -96,6 +96,8 @@ FIELD_MAPPING = {
     "betrieb_email":                 "betrieb_email",
     "beruf":                         "beruf",
     "fachrichtung":                  "fachrichtung",
+    "zug_bool":                      "zug_bool",
+    "zug_value":                     "zug_value",
     "praktikant":                    "praktikant",
     "umschueler":                    "umschueler",
     "umschulungsvertrag_vorhanden":  "umschulungsvertrag_vorhanden",
@@ -128,6 +130,7 @@ BOOL_FIELDS = {
     "praktikant", "umschueler",
     "umschulungsvertrag_vorhanden", "kostenuebernahme_vorhanden",
     "mit_abschluss_beendet", "lrs",
+    "zug_bool",
 }
 
 # Felder, die wir aus den WP-Daten ignorieren (WP-internes Zeug)

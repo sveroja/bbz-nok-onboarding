@@ -36,6 +36,12 @@ def _autosize_columns(ws):
 # ---------------------------------------------------------------------------
 
 def build_klassen_lk_excel(regs) -> io.BytesIO:
+    from .models import Bildungsgang  # lokaler Import, zirkulaer sonst
+
+    beruf_namen = {
+        b.code: b.name for b in Bildungsgang.query.all() if b.code
+    }
+
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Anmeldungen"
@@ -54,7 +60,7 @@ def build_klassen_lk_excel(regs) -> io.BytesIO:
         ws.append([
             r.nachname, r.vorname,
             r.geburtsdatum.strftime("%d.%m.%Y") if r.geburtsdatum else None,
-            r.beruf, r.zug.name if r.zug else None,
+            beruf_namen.get(r.beruf, r.beruf), r.zug.name if r.zug else None,
             r.strasse, r.plz, r.ort, r.telefon, r.email,
             f"{r.eltern_vorname or ''} {r.eltern_nachname or ''}".strip() or None,
             r.eltern_telefon,
@@ -120,7 +126,7 @@ def build_daz_excel(regs, schuljahr: str) -> io.BytesIO:
     abteilung = None
     for r in regs:
         if r.beruf:
-            eintrag = Bildungsgang.query.filter_by(name=r.beruf).first()
+            eintrag = Bildungsgang.query.filter_by(code=r.beruf).first()
             if eintrag and eintrag.abteilung:
                 abteilung = eintrag.abteilung.name
                 break

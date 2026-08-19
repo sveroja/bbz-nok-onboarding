@@ -3,9 +3,10 @@
 {% block content %}
 <h1>Bildungsgänge verwalten</h1>
 <p class="text-muted">
-  Abteilungen und Bildungsgänge (Berufe) der Schule. Der Name eines
-  Bildungsgangs muss exakt mit dem "Beruf"-Dropdown in Fluent Forms
-  übereinstimmen, damit Anmeldungen automatisch zugeordnet werden können.
+  Abteilungen und Bildungsgänge (Berufe) der Schule. Der Code muss exakt
+  mit dem VALUE des "Beruf"-Dropdowns in Fluent Forms übereinstimmen, damit
+  Anmeldungen automatisch zugeordnet werden können - der Name ist nur die
+  Anzeige im Tool (= Label in Fluent Forms).
 </p>
 
 <div class="row mb-4">
@@ -33,6 +34,10 @@
           <div class="mb-2">
             {{ bildungsgang_form.name.label(class="form-label") }}
             {{ bildungsgang_form.name(class="form-control") }}
+          </div>
+          <div class="mb-2">
+            {{ bildungsgang_form.code.label(class="form-label") }}
+            {{ bildungsgang_form.code(class="form-control") }}
           </div>
           <div class="mb-2">
             <label class="form-label d-block">Abteilung</label>
@@ -65,7 +70,7 @@
     <ul class="list-group list-group-flush">
       {% for bg in abteilung.bildungsgang|sort(attribute="name") %}
       <li class="list-group-item d-flex justify-content-between align-items-center">
-        {{ bg.name }}
+        {{ bg.name }} <span class="text-muted small">({{ bg.code }})</span>
         <form method="post" action="{{ url_for('admin.bildungsgang_delete', bildungsgang_id=bg.id) }}"
               onsubmit="return confirm('Bildungsgang \'{{ bg.name }}\' wirklich löschen?');">
           {{ action_form.hidden_tag() }}
@@ -88,7 +93,7 @@
     <ul class="list-group list-group-flush">
       {% for bg in ohne_abteilung %}
       <li class="list-group-item d-flex justify-content-between align-items-center">
-        {{ bg.name }}
+        {{ bg.name }} <span class="text-muted small">({{ bg.code }})</span>
         <form method="post" action="{{ url_for('admin.bildungsgang_delete', bildungsgang_id=bg.id) }}"
               onsubmit="return confirm('Bildungsgang \'{{ bg.name }}\' wirklich löschen?');">
           {{ action_form.hidden_tag() }}

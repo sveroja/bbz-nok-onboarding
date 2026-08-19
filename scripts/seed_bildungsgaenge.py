@@ -5,95 +5,91 @@ Ausfuehren im Container:
     docker compose exec app env PYTHONPATH=/app python scripts/seed_bildungsgaenge.py
 
 Idempotent: legt Abteilungen/Bildungsgaenge nur an, wenn sie noch nicht
-existieren (per Name). Die 6 bereits gegen Fluent Forms verifizierten
-Bildungsgang-Bezeichnungen bleiben unveraendert (siehe Kommentare unten) -
-NICHT durch die kuerzere Webseiten-Formulierung ersetzen.
+existieren (per Code). `code` muss exakt dem VALUE des "Beruf"-Dropdowns in
+Fluent Forms entsprechen (Label dort = `name`).
 """
 from app import create_app
 from app.extensions import db
 from app.models import Abteilung, Bildungsgang
 
+# (Name, Code) je Abteilung. Code = Value im Fluent-Forms-Dropdown.
 DATEN = {
     "Elektrotechnik": [
-        "Elektroniker/Elektronikerin für Energie- und Gebäudetechnik",  # verifiziert (Fluent Forms)
-        "Elektroniker/-in Gebäudesystemintegration",
-        "Industrieelektriker/-in",
-        "Elektroniker/Elektronikerin für Betriebstechnik",  # verifiziert (Fluent Forms)
-        "Fachinformatiker/Fachinformatikerin",  # verifiziert (Fluent Forms)
-        "IT-Systemelektroniker/IT-Systemelektronikerin",  # verifiziert (Fluent Forms)
-        "IT-Systemkaufmann/frau",
-        "Informatikkaufmann/frau",
-        "Informationselektroniker/Informationselektronikerin",  # verifiziert (Fluent Forms)
-        "Elektriker/Elektrikerin Fachrichtung Betriebstechnik",  # verifiziert (Fluent Forms)
+        ("Elektroniker/-in – Fachrichtung Energie- und Gebäudetechnik", "elektroniker_energie_gebaeudetechnik"),
+        ("Elektroniker/-in – Fachrichtung Gebäudesystemintegration", "elektroniker_gebaeudesystemintegration"),
+        ("Industrieelektriker/-in", "industrieelektriker"),
+        ("Elektroniker/-in für Betriebstechnik", "elektroniker_betriebstechnik"),
+        ("Fachinformatiker/-in", "fachinformatiker"),
+        ("IT-System-Elektroniker/-in", "it_system_elektroniker"),
+        ("Kaufmann/-frau für IT-System-Management", "kaufmann_it_system_management"),
+        ("Kaufmann/-frau für Digitalisierungsmanagement", "kaufmann_digitalisierungsmanagement"),
+        ("Informationselektroniker/-in", "informationselektroniker"),
     ],
     "Hochbau": [
-        "Maurer/in",
-        "Zimmerer/in",
-        "Hochbaufacharbeiter/in",
-        "Ausbaufacharbeiter/in",
-        "Tischler/in",
-        "Beton- und Stahlbetonbauer/in",
-        "Holzmechaniker/in",
-        "Holz- und Bautenschützer/in",
-        "Staatlich geprüfte/r Techniker/in der Fachrichtung Bautechnik (Schwerpunkt Tiefbau)",
+        ("Maurer/-in", "maurer"),
+        ("Zimmerer/-in", "zimmerer"),
+        ("Hochbaufacharbeiter/-in", "hochbaufacharbeiter"),
+        ("Ausbaufacharbeiter/-in", "ausbaufacharbeiter"),
+        ("Tischler/-in", "tischler"),
+        ("Beton- und Stahlbetonbauer/-in", "beton_stahlbetonbauer"),
+        ("Holzmechaniker/-in", "holzmechaniker"),
+        ("Holz- und Bautenschützer/-in", "holz_bautenschuetzer"),
     ],
     "Tiefbau": [
-        "Bautechnische/r Konstrukteur/in",
-        "Straßenbauer/in",
-        "Kanalbauer/in",
-        "Tiefbaufacharbeiter/in",
-        "Straßenwärter/in",
+        ("Bautechnischer Konstrukteur/Bautechnische Konstrukteurin – Fachrichtung Tief-, Verkehrswege- und Landschaftsbau", "bautechnischer_konstrukteur"),
+        ("Straßenbauer/-in", "strassenbauer"),
+        ("Kanalbauer/-in", "kanalbauer"),
+        ("Tiefbaufacharbeiter/-in", "tiefbaufacharbeiter"),
+        ("Straßenwärter/-in", "strassenwaerter"),
     ],
     "Landmaschinen-, Anlagen- & Klimatechnik": [
-        "Klempner/in",
-        "Anlagenmechaniker/in – Sanitär-, Heizungs- und Klimatechnik",
-        "Land- und Baumaschinenmechatroniker",
-        "Mechatroniker/in für Kältetechnik",
-        "Technische/r Systemplaner/in – Versorgungs- und Ausrüstungstechnik (VAT)",
-        "Technische/r Systemplaner/in – Elektrotechnische Systeme (ETS)",
+        ("Klempner/-in", "klempner"),
+        ("Anlagenmechaniker/-in für Sanitär-, Heizungs- und Klimatechnik", "anlagenmechaniker_shk"),
+        ("Land- und Baumaschinenmechatroniker/-in", "land_baumaschinenmechatroniker"),
+        ("Mechatroniker/-in für Kältetechnik", "mechatroniker_kaeltetechnik"),
+        ("Technischer Systemplaner/Technische Systemplanerin – Fachrichtung Versorgungs- und Ausrüstungstechnik (VAT)", "techn_systemplaner_vat"),
+        ("Technischer Systemplaner/Technische Systemplanerin – Fachrichtung Elektrotechnische Systeme (ETS)", "techn_systemplaner_ets"),
     ],
     "Landwirtschaft und Hauswirtschaft": [
-        "Landwirt/in",
-        "Fachkraft Agrarservice",
-        "Fachschule für Landwirtschaft",
-        "Fischwirt/in",
-        "Ländl.-hauswirtschaftl. Betriebsleiter/in",
-        "Wirtschafter/in der ländl. Hauswirtschaft",
-        "Staatlich geprüfte/r Wirtschafter/in des Landbaus",
-        "Staatlich geprüfte/r Wirtschafter/in des Landbaus Schwerpunkt ökologischer Landbau",
-        "Staatlich geprüfte/r Agrarbetriebswirt/in",
-        "Fachoberschule Agrar",
-        "Staatlich geprüfte/r Wirtschafter/in der ländlichen Hauswirtschaft",
-        "Staatliche geprüfte/r ländliche-hauswirtschaftliche/r Betriebsleiter/in",
+        ("Landwirt/-in", "landwirt"),
+        ("Fachkraft Agrarservice", "fachkraft_agrarservice"),
+        ("Fachschule für Landwirtschaft", "fachschule_landwirtschaft"),
+        ("Fischwirt/-in", "fischwirt"),
+        ("Fachoberschule Agrar", "fachoberschule_agrar"),
+        ("Ländl.-hauswirtschaftl. Betriebsleiter/-in", "laendl_hauswirtschaftl_betriebsleiter"),
+        ("Wirtschafter/-in der ländl. Hauswirtschaft", "wirtschafter_laendl_hauswirtschaft"),
+        ("Staatlich geprüfte/r Wirtschafter/-in des Landbaus", "staatl_gepr_wirtschafter_landbau"),
+        ("Staatlich geprüfte/r Wirtschafter/-in des Landbaus, Schwerpunkt ökologischer Landbau", "staatl_gepr_wirtschafter_landbau_oekolog"),
+        ("Staatlich geprüfte/r Agrarbetriebswirt/-in", "staatl_gepr_agrarbetriebswirt"),
+        ("Staatlich geprüfte/r Wirtschafter/-in der ländlichen Hauswirtschaft", "staatl_gepr_wirtschafter_laendl_hauswirtschaft"),
     ],
     "Metalltechnik": [
-        "Industriemechaniker/in",
-        "Konstruktionsmechaniker",
-        "Werkzeugmechaniker/in",
-        "Zerspanungsmechaniker",
-        "Kraftfahrzeugmechatroniker Fachrichtung PKW",
-        "Kraftfahrzeugmechatroniker Fachrichtung NFZ",
-        "Karosserie- und Fahrzeugbaumechaniker mit der Fachrichtung Karosserie- und Fahrzeugbautechnik",
-        "Karosserie- und Fahrzeugbaumechaniker mit der Fachrichtung Karosserieinstandhaltungstechnik",
-        "Kraftfahrzeugmechatroniker mit dem Schwerpunkt Karosserietechnik",
-        "Metallbauer in der Fachrichtung Nutzfahrzeugbau",
-        "Karosserie- und Fahrzeugbaumechaniker mit der Fachrichtung Caravan- und Reisemobiltechnik",
+        ("Industriemechaniker/-in", "industriemechaniker"),
+        ("Konstruktionsmechaniker/-in", "konstruktionsmechaniker"),
+        ("Werkzeugmechaniker/-in", "werkzeugmechaniker"),
+        ("Zerspanungsmechaniker/-in", "zerspanungsmechaniker"),
+        ("Kraftfahrzeugmechatroniker/-in – Schwerpunkt Personenkraftwagentechnik", "kfz_mechatroniker_pkw"),
+        ("Kraftfahrzeugmechatroniker/-in – Schwerpunkt Nutzfahrzeugtechnik", "kfz_mechatroniker_nfz"),
+        ("Kraftfahrzeugmechatroniker/-in – Schwerpunkt Karosserietechnik", "kfz_mechatroniker_karosserietechnik"),
+        ("Karosserie- und Fahrzeugbaumechaniker/-in – Fachrichtung Karosserie- und Fahrzeugbautechnik", "karosserie_fahrzeugbaumechaniker_bautechnik"),
+        ("Karosserie- und Fahrzeugbaumechaniker/-in – Fachrichtung Karosserieinstandhaltungstechnik", "karosserie_fahrzeugbaumechaniker_instandhaltung"),
+        ("Karosserie- und Fahrzeugbaumechaniker/-in – Fachrichtung Caravan- und Reisemobiltechnik", "karosserie_fahrzeugbaumechaniker_caravan"),
+        ("Metallbauer/-in – Fachrichtung Nutzfahrzeugbau", "metallbauer_nutzfahrzeugbau"),
     ],
     "Nahrung, Gestaltung, Körperpflege": [
-        "Bäcker/in",
-        "Fachverkäufer/in – Nahrungsmittelhandwerk (Bäckerei/Konditorei)",
-        "Fleischer/in",
-        "Fachverkäufer/in im Nahrungsmittelhandwerk (Fleischerei)",
-        "Maler/in und Lackierer/in Fachrichtung Gestaltung und Instandhaltung",
-        "Maler/in und Lackierer/in Fachrichtung Ausbautechnik und Oberflächengestaltung",
-        "Maler/in und Lackierer/in Fachrichtung Bauten- und Korrosionsschutz",
-        "Maler/in und Lackierer/in Fachrichtung Energieeffizienz und Gestaltungstechnik",
-        "Friseur/in",
-        "Raumausstatter/in",
-        "Reitsportsattler/in",
-        "KFZ-Sattler/in",
-        "Polsterer/Polsterin",
-        "Polster- & Dekorationsnäher/in",
+        ("Bäcker/-in", "baecker"),
+        ("Fachverkäufer/-in im Lebensmittelhandwerk – Schwerpunkte Bäckerei, Konditorei", "fachverkaeufer_lebensmittelhandwerk_baeckerei_konditorei"),
+        ("Fachverkäufer/-in im Lebensmittelhandwerk – Schwerpunkt Fleischerei", "fachverkaeufer_lebensmittelhandwerk_fleischerei"),
+        ("Fleischer/-in", "fleischer"),
+        ("Friseur/-in", "friseur"),
+        ("Maler/-in und Lackierer/-in – Fachrichtung Gestaltung und Instandhaltung", "maler_lackierer_gestaltung_instandhaltung"),
+        ("Maler/-in und Lackierer/-in – Fachrichtung Bauten- und Korrosionsschutz", "maler_lackierer_bauten_korrosionsschutz"),
+        ("Maler/-in und Lackierer/-in – Fachrichtung Energieeffizienz- und Gestaltungstechnik", "maler_lackierer_energieeffizienz_gestaltungstechnik"),
+        ("Raumausstatter/-in", "raumausstatter"),
+        ("Sattler/-in – Fachrichtung Fahrzeugsattlerei", "sattler_fahrzeugsattlerei"),
+        ("Sattler/-in – Fachrichtung Reitsportsattlerei", "sattler_reitsportsattlerei"),
+        ("Polsterer/-in", "polsterer"),
+        ("Polster- und Dekorationsnäher/-in", "polster_dekorationsnaeher"),
     ],
 }
 
@@ -109,14 +105,16 @@ def seed():
                 db.session.flush()
                 print(f"Abteilung angelegt: {abteilung_name}")
 
-            for beruf in berufe:
-                bildungsgang = Bildungsgang.query.filter_by(name=beruf).first()
+            for name, code in berufe:
+                bildungsgang = Bildungsgang.query.filter_by(code=code).first()
                 if bildungsgang is None:
-                    db.session.add(Bildungsgang(name=beruf, abteilung_id=abteilung.id))
-                    print(f"  Bildungsgang angelegt: {beruf}")
-                elif bildungsgang.abteilung_id is None:
-                    bildungsgang.abteilung_id = abteilung.id
-                    print(f"  Bildungsgang '{beruf}' -> Abteilung '{abteilung_name}' nachgetragen")
+                    db.session.add(Bildungsgang(name=name, code=code, abteilung_id=abteilung.id))
+                    print(f"  Bildungsgang angelegt: {name} ({code})")
+                else:
+                    if bildungsgang.name != name:
+                        bildungsgang.name = name
+                    if bildungsgang.abteilung_id is None:
+                        bildungsgang.abteilung_id = abteilung.id
 
         db.session.commit()
         print("Fertig.")

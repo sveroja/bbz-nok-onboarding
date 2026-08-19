@@ -1,7 +1,7 @@
 {% extends "base.html" %}
-{% block title %}Kreise: {{ bildungsgang }}{% endblock %}
+{% block title %}Kreise: {{ bildungsgang.name }}{% endblock %}
 {% block content %}
-<h1>Kreise für "{{ bildungsgang }}"</h1>
+<h1>Kreise für "{{ bildungsgang.name }}"</h1>
 <p class="text-muted">
   Häkchen = SuS aus diesem Kreis/dieser kreisfreien Stadt dürfen diesen
   Bildungsgang an dieser Schule besuchen. Keine Häkchen gesetzt = noch nicht

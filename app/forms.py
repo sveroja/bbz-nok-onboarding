@@ -81,7 +81,7 @@ class KlasseForm(FlaskForm):
         # Moduls noch nicht verfuegbar.
         super().__init__(*args, **kwargs)
         self.bildungsgaenge.choices = [
-            (b.name, b.name) for b in Bildungsgang.query.order_by(Bildungsgang.name).all()
+            (b.code, b.name) for b in Bildungsgang.query.order_by(Bildungsgang.name).all()
         ]
 
 
@@ -136,6 +136,13 @@ class BildungsgangForm(FlaskForm):
     name = StringField(
         "Bildungsgang / Beruf",
         validators=[DataRequired("Pflichtfeld."), Length(max=200)],
+    )
+    code = StringField(
+        "Code (= Value im Fluent-Forms-Dropdown, z.B. maurer)",
+        validators=[
+            DataRequired("Pflichtfeld."), Length(max=100),
+            Regexp(r"^[a-z0-9_]+$", message="Nur Kleinbuchstaben, Ziffern, Unterstrich."),
+        ],
     )
     abteilung_id = RadioField(
         "Abteilung", coerce=int, validators=[OptionalValidator()],
