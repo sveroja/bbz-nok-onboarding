@@ -53,6 +53,7 @@ FIELD_MAPPING = {
     "muttersprache":           "muttersprache",
     "jahr_des_zuzugs":         "jahr_des_zuzugs",
     "daz_bedarf":              "daz_bedarf",
+    "daz_niveau":              "sprachniveau",
 
     # Sektion 3 - Adresse/Kontakt
     "wohnt_bei":               "wohnt_bei",
@@ -114,6 +115,10 @@ FIELD_MAPPING = {
 DATE_FIELDS = {
     "geburtsdatum", "ausbildung_von", "ausbildung_bis",
 }
+
+# Felder mit Sonder-Werten, die zu "keine Angabe" -> None normalisiert werden
+SPRACHNIVEAU_FIELDS = {"sprachniveau"}
+SPRACHNIVEAU_KEINE_ANGABE = {"", "keine angabe"}
 
 # Felder, die als ja/nein-String reinkommen und zu Boolean werden
 BOOL_FIELDS = {
@@ -182,6 +187,16 @@ def parse_str(value) -> Optional[str]:
     return v if v else None
 
 
+def parse_sprachniveau(value) -> Optional[str]:
+    """Wie parse_str, aber "keine Angabe" (SuS-Auswahl im Aufnahmebogen,
+    Feld 'daz_niveau') wird zu None statt als Text gespeichert.
+    """
+    v = parse_str(value)
+    if v is None or v.strip().lower() in SPRACHNIVEAU_KEINE_ANGABE:
+        return None
+    return v
+
+
 # ---------------------------------------------------------------------------
 # Mapping einer Submission auf ein Registration-Objekt
 # ---------------------------------------------------------------------------
@@ -246,6 +261,8 @@ def submission_to_registration(submission: dict) -> Registration:
             parsed = parse_date(value)
         elif db_field in BOOL_FIELDS:
             parsed = parse_bool(value)
+        elif db_field in SPRACHNIVEAU_FIELDS:
+            parsed = parse_sprachniveau(value)
         else:
             parsed = parse_str(value)
 
@@ -312,6 +329,38 @@ class APIClient:
                             timeout=self.timeout)
         resp.raise_for_status()
         return resp.json()
+
+    def delete_submission(self, entry_id: str) -> None:
+        """Loescht eine Submission unwiderruflich bei Fluent Forms.
+
+        Endpunkt: DELETE /wp-json/fluentform/v1/submissions/{entry_id}
+        (per Route-Discovery ueber /wp-json/ bestaetigt, siehe Chat-Historie -
+        keine offizielle Fluent-Forms-Doku dafuer konsultiert).
+        """
+        url = f"{self.base_url}/wp-json/fluentform/v1/submissions/{entry_id}"
+        resp = requests.delete(url, auth=self.auth, timeout=self.timeout)
+        resp.raise_for_status()
+
+
+def delete_remote_submission(external_id: str) -> None:
+    """High-Level-Wrapper: baut den APIClient aus der App-Config und loescht
+    eine Submission bei Fluent Forms. Wirft RuntimeError bei fehlender
+    Konfiguration, sonst requests.RequestException bei API-Fehlern.
+    """
+    cfg = current_app.config
+    required = ["FLUENTFORM_BASE_URL", "FLUENTFORM_USERNAME", "FLUENTFORM_PASSWORD"]
+    missing = [k for k in required if not cfg.get(k)]
+    if missing:
+        raise RuntimeError(
+            f"Fluent-Forms-Zugang nicht konfiguriert. Fehlend in .env: {', '.join(missing)}"
+        )
+
+    client = APIClient(
+        base_url=cfg["FLUENTFORM_BASE_URL"],
+        username=cfg["FLUENTFORM_USERNAME"],
+        password=cfg["FLUENTFORM_PASSWORD"],
+    )
+    client.delete_submission(external_id)
 
 
 # ---------------------------------------------------------------------------

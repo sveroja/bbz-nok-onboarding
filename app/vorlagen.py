@@ -16,12 +16,12 @@ VORLAGEN = {
     },
     "klassenbuch": {
         "filename": "klassenbuch.xlsx",
-        "label": "Klassenbuch-Import (xlsx)",
+        "label": "WebUntis (xlsx)",
         "ext": "xlsx",
     },
     "daz": {
         "filename": "daz.xlsx",
-        "label": "DaZ-Import (xlsx)",
+        "label": "DaZ-Statistik (xlsx)",
         "ext": "xlsx",
     },
 }

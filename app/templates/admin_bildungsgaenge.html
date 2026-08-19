@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}Bildungsgänge verwalten{% endblock %}
+{% block content %}
+<h1>Bildungsgänge verwalten</h1>
+<p class="text-muted">
+  Abteilungen und Bildungsgänge (Berufe) der Schule. Der Name eines
+  Bildungsgangs muss exakt mit dem "Beruf"-Dropdown in Fluent Forms
+  übereinstimmen, damit Anmeldungen automatisch zugeordnet werden können.
+</p>
+
+<div class="row mb-4">
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title">Abteilung hinzufügen</h5>
+        <form method="post" action="{{ url_for('admin.abteilung_hinzufuegen') }}" class="d-flex gap-2 align-items-end">
+          {{ abteilung_form.hidden_tag() }}
+          <div class="flex-grow-1">
+            {{ abteilung_form.name.label(class="form-label") }}
+            {{ abteilung_form.name(class="form-control") }}
+          </div>
+          <button type="submit" class="btn btn-primary">Hinzufügen</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-body">
+        <h5 class="card-title">Beruf hinzufügen</h5>
+        <form method="post" action="{{ url_for('admin.bildungsgang_hinzufuegen') }}">
+          {{ bildungsgang_form.hidden_tag() }}
+          <div class="mb-2">
+            {{ bildungsgang_form.name.label(class="form-label") }}
+            {{ bildungsgang_form.name(class="form-control") }}
+          </div>
+          <div class="mb-2">
+            <label class="form-label d-block">Abteilung</label>
+            {% for subfield in bildungsgang_form.abteilung_id %}
+              <div class="form-check form-check-inline">
+                {{ subfield(class="form-check-input") }}
+                {{ subfield.label(class="form-check-label") }}
+              </div>
+            {% endfor %}
+          </div>
+          <button type="submit" class="btn btn-primary">Hinzufügen</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% for abteilung in abteilungen %}
+<div class="card mb-3">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-start">
+      <h5 class="card-title">{{ abteilung.name }}</h5>
+      <form method="post" action="{{ url_for('admin.abteilung_delete', abteilung_id=abteilung.id) }}"
+            onsubmit="return confirm('Abteilung \'{{ abteilung.name }}\' wirklich löschen?');">
+        {{ action_form.hidden_tag() }}
+        <button class="btn btn-sm btn-outline-danger" type="submit">löschen</button>
+      </form>
+    </div>
+    {% if abteilung.bildungsgang %}
+    <ul class="list-group list-group-flush">
+      {% for bg in abteilung.bildungsgang|sort(attribute="name") %}
+      <li class="list-group-item d-flex justify-content-between align-items-center">
+        {{ bg.name }}
+        <form method="post" action="{{ url_for('admin.bildungsgang_delete', bildungsgang_id=bg.id) }}"
+              onsubmit="return confirm('Bildungsgang \'{{ bg.name }}\' wirklich löschen?');">
+          {{ action_form.hidden_tag() }}
+          <button class="btn btn-sm btn-outline-danger" type="submit">löschen</button>
+        </form>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="text-muted mb-0">Keine Bildungsgänge zugeordnet.</p>
+    {% endif %}
+  </div>
+</div>
+{% endfor %}
+
+{% if ohne_abteilung %}
+<div class="card mb-3">
+  <div class="card-body">
+    <h5 class="card-title">Ohne Abteilung</h5>
+    <ul class="list-group list-group-flush">
+      {% for bg in ohne_abteilung %}
+      <li class="list-group-item d-flex justify-content-between align-items-center">
+        {{ bg.name }}
+        <form method="post" action="{{ url_for('admin.bildungsgang_delete', bildungsgang_id=bg.id) }}"
+              onsubmit="return confirm('Bildungsgang \'{{ bg.name }}\' wirklich löschen?');">
+          {{ action_form.hidden_tag() }}
+          <button class="btn btn-sm btn-outline-danger" type="submit">löschen</button>
+        </form>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

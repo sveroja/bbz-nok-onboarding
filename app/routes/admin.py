@@ -4,10 +4,11 @@ from flask_login import login_required
 
 from .. import branding, vorlagen
 from ..extensions import db
-from ..models import BILDUNGSGANG_CHOICES, BildungsgangKreis, PlzRule
+from ..models import Abteilung, Bildungsgang, BildungsgangKreis, PlzRule
 from ..decorators import role_required
 from ..forms import (
-    ActionForm, BildungsgangKreisForm, PlzRuleForm, LogoForm, VorlageForm,
+    AbteilungForm, ActionForm, BildungsgangForm, BildungsgangKreisForm,
+    PlzRuleForm, LogoForm, VorlageForm,
 )
 
 bp = Blueprint("admin", __name__, url_prefix="/admin")
@@ -87,9 +88,10 @@ def kreise_view():
         bk.bildungsgang
         for bk in BildungsgangKreis.query.with_entities(BildungsgangKreis.bildungsgang).distinct()
     }
+    bildungsgaenge = [b.name for b in Bildungsgang.query.order_by(Bildungsgang.name).all()]
     return render_template(
         "admin_kreise.html",
-        bildungsgaenge=BILDUNGSGANG_CHOICES,
+        bildungsgaenge=bildungsgaenge,
         konfiguriert=konfiguriert,
     )
 
@@ -98,7 +100,7 @@ def kreise_view():
 @login_required
 @role_required("admin")
 def kreise_bildungsgang(bildungsgang):
-    if bildungsgang not in BILDUNGSGANG_CHOICES:
+    if not Bildungsgang.query.filter_by(name=bildungsgang).first():
         flash("Unbekannter Bildungsgang.", "error")
         return redirect(url_for("admin.kreise_view"))
 
@@ -120,6 +122,113 @@ def kreise_bildungsgang(bildungsgang):
     return render_template(
         "admin_kreise_bildungsgang.html", form=form, bildungsgang=bildungsgang,
     )
+
+
+@bp.route("/bildungsgaenge")
+@login_required
+@role_required("admin")
+def bildungsgaenge_view():
+    """Uebersicht aller Bildungsgaenge, gruppiert nach Abteilung. Ersetzt die
+    frueher fest im Code hinterlegte BILDUNGSGANG_CHOICES-Liste.
+    """
+    abteilungen_liste = Abteilung.query.order_by(Abteilung.name).all()
+    ohne_abteilung = (
+        Bildungsgang.query.filter_by(abteilung_id=None).order_by(Bildungsgang.name).all()
+    )
+    return render_template(
+        "admin_bildungsgaenge.html",
+        abteilungen=abteilungen_liste,
+        ohne_abteilung=ohne_abteilung,
+        abteilung_form=AbteilungForm(),
+        bildungsgang_form=BildungsgangForm(),
+        action_form=ActionForm(),
+    )
+
+
+@bp.route("/abteilungen/hinzufuegen", methods=["POST"])
+@login_required
+@role_required("admin")
+def abteilung_hinzufuegen():
+    form = AbteilungForm()
+    if form.validate_on_submit():
+        name = form.name.data.strip()
+        if Abteilung.query.filter_by(name=name).first():
+            flash(f"Abteilung '{name}' existiert bereits.", "error")
+        else:
+            db.session.add(Abteilung(name=name))
+            db.session.commit()
+            flash(f"Abteilung '{name}' angelegt.", "success")
+    else:
+        for error in form.name.errors:
+            flash(error, "error")
+    return redirect(url_for("admin.bildungsgaenge_view"))
+
+
+@bp.route("/abteilungen/<int:abteilung_id>/delete", methods=["POST"])
+@login_required
+@role_required("admin")
+def abteilung_delete(abteilung_id):
+    form = ActionForm()
+    if not form.validate_on_submit():
+        flash("Ungültige Anfrage (CSRF).", "error")
+        return redirect(url_for("admin.bildungsgaenge_view"))
+
+    abteilung = db.session.get(Abteilung, abteilung_id)
+    if abteilung is None:
+        flash("Abteilung nicht gefunden.", "error")
+        return redirect(url_for("admin.bildungsgaenge_view"))
+
+    if Bildungsgang.query.filter_by(abteilung_id=abteilung_id).first():
+        flash(
+            f"Abteilung '{abteilung.name}' hat noch zugeordnete Bildungsgänge - "
+            "erst diese umhängen oder löschen.", "error",
+        )
+        return redirect(url_for("admin.bildungsgaenge_view"))
+
+    db.session.delete(abteilung)
+    db.session.commit()
+    flash(f"Abteilung '{abteilung.name}' gelöscht.", "success")
+    return redirect(url_for("admin.bildungsgaenge_view"))
+
+
+@bp.route("/bildungsgaenge/hinzufuegen", methods=["POST"])
+@login_required
+@role_required("admin")
+def bildungsgang_hinzufuegen():
+    form = BildungsgangForm()
+    if form.validate_on_submit():
+        name = form.name.data.strip()
+        if Bildungsgang.query.filter_by(name=name).first():
+            flash(f"Bildungsgang '{name}' existiert bereits.", "error")
+        else:
+            abteilung_id = form.abteilung_id.data if form.abteilung_id.raw_data and form.abteilung_id.raw_data[0] else None
+            db.session.add(Bildungsgang(name=name, abteilung_id=abteilung_id))
+            db.session.commit()
+            flash(f"Bildungsgang '{name}' angelegt.", "success")
+    else:
+        for error in form.name.errors:
+            flash(error, "error")
+    return redirect(url_for("admin.bildungsgaenge_view"))
+
+
+@bp.route("/bildungsgaenge/<int:bildungsgang_id>/delete", methods=["POST"])
+@login_required
+@role_required("admin")
+def bildungsgang_delete(bildungsgang_id):
+    form = ActionForm()
+    if not form.validate_on_submit():
+        flash("Ungültige Anfrage (CSRF).", "error")
+        return redirect(url_for("admin.bildungsgaenge_view"))
+
+    bildungsgang = db.session.get(Bildungsgang, bildungsgang_id)
+    if bildungsgang is None:
+        flash("Bildungsgang nicht gefunden.", "error")
+        return redirect(url_for("admin.bildungsgaenge_view"))
+
+    db.session.delete(bildungsgang)
+    db.session.commit()
+    flash(f"Bildungsgang '{bildungsgang.name}' gelöscht.", "success")
+    return redirect(url_for("admin.bildungsgaenge_view"))
 
 
 @bp.route("/vorlagen")

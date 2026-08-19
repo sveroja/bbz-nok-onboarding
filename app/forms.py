@@ -8,15 +8,15 @@ Vorteil gegenüber `request.form.get(...)`:
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileAllowed, FileSize
 from wtforms import (
-    BooleanField, DateField, SelectField, StringField, PasswordField,
-    SelectMultipleField, SubmitField,
+    BooleanField, DateField, RadioField, SelectField, StringField,
+    PasswordField, SelectMultipleField, SubmitField,
 )
 from wtforms.validators import (
     DataRequired, Length, Regexp, Optional as OptionalValidator
 )
 from wtforms.widgets import ListWidget, CheckboxInput
 
-from .models import BILDUNGSGANG_CHOICES, KREISE_SH, SPRACHNIVEAU_CHOICES
+from .models import Abteilung, Bildungsgang, KREISE_SH, SPRACHNIVEAU_CHOICES
 
 LOGO_MAX_SIZE_MB = 2
 
@@ -69,12 +69,20 @@ class KlasseForm(FlaskForm):
     )
     bildungsgaenge = SelectMultipleField(
         "Bildungsgänge",
-        choices=[(b, b) for b in BILDUNGSGANG_CHOICES],
         option_widget=CheckboxInput(),
         widget=ListWidget(prefix_label=False),
         validators=[DataRequired("Mindestens einen Bildungsgang auswählen.")],
     )
     submit = SubmitField("Klasse anlegen")
+
+    def __init__(self, *args, **kwargs):
+        # Choices erst hier statt als Klassenattribut setzen: Bildungsgang
+        # kommt jetzt aus der DB (admin-pflegbar), die ist beim Laden dieses
+        # Moduls noch nicht verfuegbar.
+        super().__init__(*args, **kwargs)
+        self.bildungsgaenge.choices = [
+            (b.name, b.name) for b in Bildungsgang.query.order_by(Bildungsgang.name).all()
+        ]
 
 
 class RegistrationLKForm(FlaskForm):
@@ -97,7 +105,7 @@ class RegistrationLKForm(FlaskForm):
         validators=[OptionalValidator()],
     )
     sprachniveau_nachweis = BooleanField(
-        "Nachweis (Zertifikat) vorhanden", validators=[OptionalValidator()],
+        "DaZ-Zertifikat liegt vor", validators=[OptionalValidator()],
     )
     submit = SubmitField("Speichern")
 
@@ -114,6 +122,31 @@ class BildungsgangKreisForm(FlaskForm):
         validators=[OptionalValidator()],
     )
     submit = SubmitField("Speichern")
+
+
+class AbteilungForm(FlaskForm):
+    name = StringField(
+        "Abteilung (z.B. Elektrotechnik)",
+        validators=[DataRequired("Pflichtfeld."), Length(max=150)],
+    )
+    submit = SubmitField("Abteilung hinzufügen")
+
+
+class BildungsgangForm(FlaskForm):
+    name = StringField(
+        "Bildungsgang / Beruf",
+        validators=[DataRequired("Pflichtfeld."), Length(max=200)],
+    )
+    abteilung_id = RadioField(
+        "Abteilung", coerce=int, validators=[OptionalValidator()],
+    )
+    submit = SubmitField("Beruf hinzufügen")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.abteilung_id.choices = [
+            (a.id, a.name) for a in Abteilung.query.order_by(Abteilung.name).all()
+        ]
 
 
 class VorlageForm(FlaskForm):

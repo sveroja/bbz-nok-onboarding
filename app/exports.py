@@ -104,11 +104,26 @@ def build_klassenbuch_excel(regs, letzter_schultag: Optional[date]) -> io.BytesI
 # DaZ-Import (schreibt in die admin-hochgeladene Vorlage, nur daz_bedarf=True)
 # ---------------------------------------------------------------------------
 
-def build_daz_excel(regs, abteilung: str, schuljahr: str) -> io.BytesIO:
-    """Wirft FileNotFoundError, wenn keine Vorlage hochgeladen wurde."""
+def build_daz_excel(regs, schuljahr: str) -> io.BytesIO:
+    """Wirft FileNotFoundError, wenn keine Vorlage hochgeladen wurde.
+
+    Abteilung wird automatisch aus der admin-gepflegten Zuordnung
+    Bildungsgang -> Abteilung ermittelt (erste passende unter den
+    uebergebenen Registrierungen) statt manuell eingetippt zu werden.
+    """
+    from .models import Bildungsgang  # lokaler Import, zirkulaer sonst
+
     path = vorlagen.vorlage_path("daz")
     if not path.exists():
         raise FileNotFoundError("DaZ-Vorlage wurde noch nicht hochgeladen.")
+
+    abteilung = None
+    for r in regs:
+        if r.beruf:
+            eintrag = Bildungsgang.query.filter_by(name=r.beruf).first()
+            if eintrag and eintrag.abteilung:
+                abteilung = eintrag.abteilung.name
+                break
 
     wb = openpyxl.load_workbook(path)
     ws = wb["Tabelle1"]

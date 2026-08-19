@@ -115,19 +115,6 @@ STATUS_CHOICES = [
     ("complete",  "vollständig"),  # LK-Felder ergänzt
 ]
 
-# Feste Liste der Bildungsgänge der Schule. Muss mit den Dropdown-Optionen
-# des "Beruf"-Felds in Fluent Forms uebereinstimmen (siehe README), damit
-# Anmeldungen automatisch den passenden Klassen/Zuegen zugeordnet werden
-# koennen. Bei neuen Bildungsgaengen: hier UND in Fluent Forms ergaenzen.
-BILDUNGSGANG_CHOICES = [
-    "Fachinformatiker/Fachinformatikerin",
-    "Informationselektroniker/Informationselektronikerin",
-    "Elektroniker/Elektronikerin für Energie- und Gebäudetechnik",
-    "Elektroniker/Elektronikerin für Betriebstechnik",
-    "Elektriker/Elektrikerin Fachrichtung Betriebstechnik",
-    "IT-Systemelektroniker/IT-Systemelektronikerin",
-]
-
 # DaZ-Sprachniveau (steht nicht im Aufnahmebogen selbst, nur "DaZ ja/nein" -
 # wird von der LK separat nachgepflegt, siehe ImportDaZ-Vorlage).
 SPRACHNIVEAU_CHOICES = ["A0", "A1", "A2", "B1", "B2", "C1"]
@@ -223,7 +210,8 @@ class Registration(db.Model):
     muttersprache = db.Column(db.String(100), nullable=True)
     jahr_des_zuzugs = db.Column(db.String(10), nullable=True)  # String wg. "unbekannt" etc.
     daz_bedarf = db.Column(db.Boolean, nullable=True)        # Sprachniveau <C1
-    # Nicht im Aufnahmebogen, von LK nachgepflegt (siehe DaZ-Import-Export):
+    # SuS-Selbstauskunft im Aufnahmebogen (FF-Feld "daz_niveau", A1-B2/keine
+    # Angabe), von der LK bei Bedarf ueberschreibbar (siehe DaZ-Import-Export):
     sprachniveau = db.Column(db.String(5), nullable=True)    # SPRACHNIVEAU_CHOICES
     sprachniveau_nachweis = db.Column(db.Boolean, nullable=True)  # Zertifikat vorhanden?
 
@@ -336,7 +324,7 @@ class Klasse(db.Model):
 class KlasseBildungsgang(db.Model):
     """m:n-Verknuepfung: eine Klasse kann mehrere Bildungsgaenge abdecken
     (z.B. gemeinsame Grundstufe), ein Bildungsgang kann ueber mehrere
-    Klassen/Zuege verteilt sein. bildungsgang-Werte siehe BILDUNGSGANG_CHOICES.
+    Klassen/Zuege verteilt sein. bildungsgang-Werte siehe Bildungsgang-Tabelle.
     """
     id = db.Column(db.Integer, primary_key=True)
     klasse_id = db.Column(db.Integer, db.ForeignKey("klasse.id"), nullable=False)
@@ -345,6 +333,39 @@ class KlasseBildungsgang(db.Model):
     __table_args__ = (
         db.UniqueConstraint("klasse_id", "bildungsgang", name="uq_klasse_bildungsgang"),
     )
+
+
+class Abteilung(db.Model):
+    """Organisationseinheit der Schule (z.B. Elektrotechnik, Hochbau).
+    Admin-pflegbar - siehe /admin/bildungsgaenge.
+    """
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(150), unique=True, nullable=False)
+
+    def __repr__(self) -> str:
+        return f"<Abteilung {self.name}>"
+
+
+class Bildungsgang(db.Model):
+    """Ein Ausbildungsberuf/Bildungsgang der Schule (ersetzt die frueher
+    fest im Code hinterlegte BILDUNGSGANG_CHOICES-Liste). `name` muss exakt
+    mit dem "Beruf"-Dropdown in Fluent Forms uebereinstimmen (siehe README),
+    damit Anmeldungen automatisch den passenden Klassen/Zuegen zugeordnet
+    werden koennen. Bei neuen Bildungsgaengen: hier UND in Fluent Forms
+    ergaenzen. Admin-pflegbar - siehe /admin/bildungsgaenge.
+
+    Die Zuordnung zu Klassen (KlasseBildungsgang), Kreisen (BildungsgangKreis)
+    und die Anmeldungen selbst (Registration.beruf) referenzieren weiterhin
+    den Namen als Freitext, nicht diese id - so bleibt der Beruf-Abgleich
+    beim Sync ein reiner Textvergleich, unabhaengig von dieser Verwaltung.
+    """
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(200), unique=True, nullable=False)
+    abteilung_id = db.Column(db.Integer, db.ForeignKey("abteilung.id"), nullable=True)
+    abteilung = db.relationship("Abteilung", backref="bildungsgang")
+
+    def __repr__(self) -> str:
+        return f"<Bildungsgang {self.name}>"
 
 
 class BildungsgangKreis(db.Model):

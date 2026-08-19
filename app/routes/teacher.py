@@ -11,10 +11,10 @@ from flask_login import login_required, current_user
 
 from .. import exports
 from ..extensions import db, limiter
-from ..models import Registration, Klasse, KlasseBildungsgang
+from ..models import Abteilung, Registration, Klasse, KlasseBildungsgang
 from ..decorators import role_required
 from ..forms import ActionForm, KlasseForm, RegistrationLKForm
-from ..fluentform import sync_submissions
+from ..fluentform import sync_submissions, delete_remote_submission
 
 bp = Blueprint("teacher", __name__, url_prefix="/teacher")
 
@@ -28,6 +28,30 @@ def _beruf_to_klassen_map(klassen):
         for kb in k.bildungsgaenge:
             mapping[kb.bildungsgang].append(k)
     return mapping
+
+
+def _find_duplicate_ids():
+    """IDs aller Anmeldungen, die mit mind. einer anderen in Vorname+
+    Nachname+Geburtsdatum uebereinstimmen (Verdacht: SuS hat das
+    WP-Formular versehentlich zweimal separat ausgefuellt - hat jeweils
+    eine eigene external_id, wird von der normalen Dublettenerkennung
+    beim Sync nicht erfasst). Rein informativ, loescht/blockiert nichts.
+    """
+    key_to_ids = defaultdict(list)
+    rows = Registration.query.with_entities(
+        Registration.id, Registration.vorname, Registration.nachname,
+        Registration.geburtsdatum,
+    ).all()
+    for reg_id, vorname, nachname, geburtsdatum in rows:
+        if vorname and nachname and geburtsdatum:
+            key = (vorname.strip().lower(), nachname.strip().lower(), geburtsdatum)
+            key_to_ids[key].append(reg_id)
+
+    dup_ids = set()
+    for ids in key_to_ids.values():
+        if len(ids) > 1:
+            dup_ids.update(ids)
+    return dup_ids
 
 
 def _current_filtered_regs():
@@ -84,6 +108,7 @@ def registrations():
     regs, aktive_klasse, zug_filter = _current_filtered_regs()
     klassen = Klasse.query.order_by(Klasse.name).all()
     beruf_to_klassen = _beruf_to_klassen_map(klassen)
+    duplicate_ids = _find_duplicate_ids()
 
     # ActionForm einmal für CSRF-Token in jedem Zeilen-Button
     action_form = ActionForm()
@@ -95,6 +120,7 @@ def registrations():
         beruf_to_klassen=beruf_to_klassen,
         zug_filter=zug_filter,
         aktive_klasse=aktive_klasse,
+        duplicate_ids=duplicate_ids,
     )
 
 
@@ -178,6 +204,12 @@ def mark_checked(reg_id):
 @login_required
 @role_required("teacher", "admin")
 def delete(reg_id):
+    """Loescht den Datensatz unwiderruflich - bei manuell erfassten
+    Anmeldungen nur lokal, bei synchronisierten (external_id vorhanden)
+    zusaetzlich die Original-Submission bei Fluent Forms (WordPress).
+    Schlaegt die WP-Loeschung fehl, bleibt der lokale Datensatz erhalten
+    (kein inkonsistenter Zwischenzustand), Fehler wird angezeigt.
+    """
     form = ActionForm()
     if not form.validate_on_submit():
         flash("Ungültige Anfrage (CSRF).", "error")
@@ -187,6 +219,23 @@ def delete(reg_id):
     if reg is None:
         flash("Datensatz nicht gefunden.", "error")
         return redirect(url_for("teacher.registrations"))
+
+    if reg.external_id:
+        try:
+            delete_remote_submission(reg.external_id)
+        except RuntimeError as exc:
+            flash(f"Löschen nicht möglich: {exc}", "error")
+            return redirect(url_for("teacher.registrations"))
+        except Exception:
+            import logging
+            logging.getLogger(__name__).exception(
+                "Löschen fehlgeschlagen für Submission %s", reg.external_id
+            )
+            flash(
+                "Löschen fehlgeschlagen (siehe Server-Log). "
+                "Datensatz wurde NICHT gelöscht.", "error",
+            )
+            return redirect(url_for("teacher.registrations"))
 
     db.session.delete(reg)
     db.session.commit()
@@ -219,7 +268,23 @@ def klassen():
             return redirect(url_for("teacher.klassen"))
 
     alle_klassen = Klasse.query.order_by(Klasse.name).all()
-    return render_template("teacher_klassen.html", form=form, klassen=alle_klassen)
+
+    # Bildungsgang-Checkboxen im Formular nach Abteilung gruppieren, damit man
+    # sich bei mittlerweile ~70 Berufen nicht mehr durch eine flache Liste
+    # suchen muss.
+    abteilungen = Abteilung.query.order_by(Abteilung.name).all()
+    gruppen = [
+        (a.name, sorted(b.name for b in a.bildungsgang)) for a in abteilungen
+    ]
+    zugeordnete_namen = {b.name for a in abteilungen for b in a.bildungsgang}
+    ohne_abteilung = sorted(
+        name for name, _ in form.bildungsgaenge.choices if name not in zugeordnete_namen
+    )
+
+    return render_template(
+        "teacher_klassen.html", form=form, klassen=alle_klassen,
+        bildungsgang_gruppen=gruppen, bildungsgang_ohne_abteilung=ohne_abteilung,
+    )
 
 
 @bp.route("/klassen/<int:klasse_id>/delete", methods=["POST"])
@@ -312,7 +377,7 @@ def export_klassenbuch():
         return redirect(url_for("teacher.registrations"))
 
     return send_file(
-        buf, as_attachment=True, download_name="klassenbuch_import.xlsx",
+        buf, as_attachment=True, download_name="webuntis.xlsx",
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
 
@@ -321,21 +386,20 @@ def export_klassenbuch():
 @login_required
 @role_required("teacher", "admin")
 def export_daz():
-    abteilung = request.args.get("abteilung", "").strip()
     schuljahr = request.args.get("schuljahr", "").strip()
-    if not abteilung or not schuljahr:
-        flash("Bitte Abteilung und Schuljahr angeben.", "error")
+    if not schuljahr:
+        flash("Bitte Schuljahr angeben.", "error")
         return redirect(url_for("teacher.registrations"))
 
     regs, _aktive_klasse, _zug_filter = _current_filtered_regs()
     try:
-        buf = exports.build_daz_excel(regs, abteilung, schuljahr)
+        buf = exports.build_daz_excel(regs, schuljahr)
     except FileNotFoundError as exc:
         flash(f"{exc} Siehe Admin → Export-Vorlagen.", "error")
         return redirect(url_for("teacher.registrations"))
 
     return send_file(
-        buf, as_attachment=True, download_name="daz_import.xlsx",
+        buf, as_attachment=True, download_name="daz_statistik.xlsx",
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
 

@@ -18,17 +18,63 @@
       {{ render_field(form.zustaendige_lehrkraft) }}
       <div class="mb-3">
         {{ form.bildungsgaenge.label(class="form-label") }}
-        {% for subfield in form.bildungsgaenge %}
-          <div class="form-check">
-            {{ subfield(class="form-check-input") }}
-            {{ subfield.label(class="form-check-label") }}
-          </div>
-        {% endfor %}
         {% if form.bildungsgaenge.errors %}
           <div class="invalid-feedback d-block">
             {% for err in form.bildungsgaenge.errors %}{{ err }}{% endfor %}
           </div>
         {% endif %}
+        <div class="accordion" id="bildungsgangAccordion">
+          {% for abteilung_name, namen in bildungsgang_gruppen %}
+            {% if namen %}
+            <div class="accordion-item">
+              <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                        data-bs-target="#bg-collapse-{{ loop.index }}"
+                        aria-expanded="false" aria-controls="bg-collapse-{{ loop.index }}">
+                  {{ abteilung_name }} <span class="text-muted ms-2">({{ namen | length }})</span>
+                </button>
+              </h2>
+              <div id="bg-collapse-{{ loop.index }}" class="accordion-collapse collapse"
+                   data-bs-parent="#bildungsgangAccordion">
+                <div class="accordion-body">
+                  {% for subfield in form.bildungsgaenge %}
+                    {% if subfield.data in namen %}
+                      <div class="form-check">
+                        {{ subfield(class="form-check-input") }}
+                        {{ subfield.label(class="form-check-label") }}
+                      </div>
+                    {% endif %}
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+            {% endif %}
+          {% endfor %}
+          {% if bildungsgang_ohne_abteilung %}
+          <div class="accordion-item">
+            <h2 class="accordion-header">
+              <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                      data-bs-target="#bg-collapse-ohne"
+                      aria-expanded="false" aria-controls="bg-collapse-ohne">
+                Ohne Abteilung <span class="text-muted ms-2">({{ bildungsgang_ohne_abteilung | length }})</span>
+              </button>
+            </h2>
+            <div id="bg-collapse-ohne" class="accordion-collapse collapse"
+                 data-bs-parent="#bildungsgangAccordion">
+              <div class="accordion-body">
+                {% for subfield in form.bildungsgaenge %}
+                  {% if subfield.data in bildungsgang_ohne_abteilung %}
+                    <div class="form-check">
+                      {{ subfield(class="form-check-input") }}
+                      {{ subfield.label(class="form-check-label") }}
+                    </div>
+                  {% endif %}
+                {% endfor %}
+              </div>
+            </div>
+          </div>
+          {% endif %}
+        </div>
       </div>
       {{ form.submit(class="btn btn-primary") }}
     </form>

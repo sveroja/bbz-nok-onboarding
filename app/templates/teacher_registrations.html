@@ -58,23 +58,18 @@
           <input type="date" id="letzter_schultag" name="letzter_schultag"
                  class="form-control form-control-sm" required>
         </div>
-        <button type="submit" class="btn btn-outline-primary btn-sm">Klassenbuch-Import</button>
+        <button type="submit" class="btn btn-outline-primary btn-sm">WebUntis</button>
       </form>
 
       <form method="get" action="{{ url_for('teacher.export_daz') }}"
             class="d-flex align-items-end gap-1">
         <input type="hidden" name="zug_id" value="{{ zug_filter or '' }}">
         <div>
-          <label for="abteilung" class="form-label m-0 small">Abteilung</label>
-          <input type="text" id="abteilung" name="abteilung"
-                 class="form-control form-control-sm" style="width: 10rem;" required>
-        </div>
-        <div>
           <label for="schuljahr" class="form-label m-0 small">Schuljahr</label>
           <input type="text" id="schuljahr" name="schuljahr" placeholder="2026/27"
                  class="form-control form-control-sm" style="width: 6rem;" required>
         </div>
-        <button type="submit" class="btn btn-outline-primary btn-sm">DaZ-Import</button>
+        <button type="submit" class="btn btn-outline-primary btn-sm">DaZ-Statistik</button>
       </form>
     </div>
   </div>
@@ -85,24 +80,36 @@
 <table class="table table-striped align-middle">
   <thead>
     <tr>
-      <th>ID</th>
+      <th>Nr. <span class="text-muted small">({{ regs|length }})</span></th>
       <th>Eingegangen</th>
       <th>Name</th>
       <th>Beruf</th>
       <th>Zug</th>
       <th>Geb.</th>
-      <th>PLZ</th>
+      <th>Wohnort</th>
+      <th>Betrieb Ort</th>
       <th>PLZ-Prüfung</th>
-      <th>Status</th>
+      <th>
+        Status
+        <span class="text-muted" style="cursor: help;"
+              title="Kann z.B. genutzt werden, um den Bearbeitungsfortschritt zu markieren (u.a. Zeugnis geprüft).">ⓘ</span>
+      </th>
       <th class="text-end">Aktionen</th>
     </tr>
   </thead>
   <tbody>
   {% for r in regs %}
     <tr>
-      <td>{{ r.id }}</td>
+      <td>{{ loop.index }}</td>
       <td>{{ r.created_at.strftime("%d.%m.%Y %H:%M") if r.created_at }}</td>
-      <td>{{ r.vorname }} {{ r.nachname }}</td>
+      <td>
+        {{ r.vorname }} {{ r.nachname }}
+        {% if r.id in duplicate_ids %}
+          <span class="badge bg-warning text-dark" title="Name+Geburtsdatum kommen mehrfach vor - evtl. Formular doppelt ausgefüllt">
+            ⚠ evtl. Dublette
+          </span>
+        {% endif %}
+      </td>
       <td>{{ r.beruf }}</td>
       <td>
         <form method="post" action="{{ url_for('teacher.assign_zug', reg_id=r.id) }}">
@@ -118,6 +125,7 @@
       </td>
       <td>{{ r.geburtsdatum.strftime("%d.%m.%Y") if r.geburtsdatum }}</td>
       <td>{{ r.plz }} {{ r.ort }}</td>
+      <td>{{ r.betrieb_plz }} {{ r.betrieb_ort }}</td>
       <td>
         {% if r.plz_ok is none %}
           <span class="badge bg-warning text-dark">unklar</span>
@@ -146,7 +154,7 @@
           {% endif %}
           <form method="post"
                 action="{{ url_for('teacher.delete', reg_id=r.id) }}"
-                onsubmit="return confirm('Datensatz wirklich löschen?');">
+                onsubmit="return confirm('Datensatz wirklich unwiderruflich löschen? Das kann nicht rückgängig gemacht werden.');">
             {{ action_form.hidden_tag() }}
             <button class="btn btn-sm btn-outline-danger" type="submit">löschen</button>
           </form>
