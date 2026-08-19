@@ -31,10 +31,10 @@ FONT_SIZE = 8
 TEXT_FIELDS = [
     # Seite 1 - Sektion 1 (Klassendaten)
     (1, 329, 42.3, "hauptlistennummer", FONT_SIZE),
-    (1, 440, 100.4, "aufnahmedatum", FONT_SIZE),
-    (1, 80, 124.2, "zug_name", 7),  # Box ist schmal ausgelegt, kleinere Schrift
+    (1, 452, 100.4, "aufnahmedatum", FONT_SIZE),
+    (1, 95, 124.2, "zug_name", 7),  # Box ist schmal ausgelegt, kleinere Schrift
     (1, 235, 124.2, "zug_lehrkraft", FONT_SIZE),
-    (1, 437, 125.7, "eintrittsdatum", FONT_SIZE),
+    (1, 452, 125.7, "eintrittsdatum", FONT_SIZE),
 
     # Sektion 2 (Schuelerdaten)
     (1, 121, 184.4, "nachname", FONT_SIZE),
@@ -116,7 +116,7 @@ CHECKBOX_FIELDS = [
     (1, 465, 344.9, "konfession", "isl"),
     # Foerderbedarf (ja-Zelle 402.5-423.9, nein-Zelle 423.9-446.0 - "nein"
     # fuellt die Zelle fast komplett, kaum Platz fuers Kreuz)
-    (1, 421, 369.9, "foerderbedarf", True),
+    (1, 417, 369.9, "foerderbedarf", True),
     (1, 445, 369.9, "foerderbedarf", False),
     # Eltern-Rollen
     (1, 547.1, 468.0, "eltern_ist_vater", True),

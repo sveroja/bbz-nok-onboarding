@@ -1,5 +1,7 @@
 """Admin-Bereich: PLZ-Regel, Logo-Branding verwalten."""
-from flask import Blueprint, render_template, redirect, request, url_for, flash
+import json
+
+from flask import Blueprint, Response, render_template, redirect, request, url_for, flash
 from flask_login import login_required
 
 from .. import branding, vorlagen
@@ -7,8 +9,8 @@ from ..extensions import db
 from ..models import Abteilung, Bildungsgang, BildungsgangKreis, PlzRule
 from ..decorators import role_required
 from ..forms import (
-    AbteilungForm, ActionForm, BildungsgangForm, BildungsgangKreisForm,
-    PlzRuleForm, LogoForm, VorlageForm,
+    AbteilungForm, ActionForm, BildungsgangForm, BildungsgangImportForm,
+    BildungsgangKreisForm, PlzRuleForm, LogoForm, VorlageForm,
 )
 
 bp = Blueprint("admin", __name__, url_prefix="/admin")
@@ -142,8 +144,100 @@ def bildungsgaenge_view():
         ohne_abteilung=ohne_abteilung,
         abteilung_form=AbteilungForm(),
         bildungsgang_form=BildungsgangForm(),
+        import_form=BildungsgangImportForm(),
         action_form=ActionForm(),
     )
+
+
+@bp.route("/bildungsgaenge/export")
+@login_required
+@role_required("admin")
+def bildungsgaenge_export():
+    """JSON-Export aller Abteilungen/Bildungsgänge - zum Import auf einem
+    anderen Server (z.B. Migration Produktiv-/Testinstanz), damit das nicht
+    per Hand nachgepflegt werden muss.
+    """
+    daten = [
+        {
+            "abteilung": b.abteilung.name if b.abteilung else None,
+            "name": b.name,
+            "code": b.code,
+        }
+        for b in Bildungsgang.query.order_by(Bildungsgang.name).all()
+    ]
+    payload = json.dumps(daten, ensure_ascii=False, indent=2)
+    return Response(
+        payload,
+        mimetype="application/json",
+        headers={"Content-Disposition": "attachment; filename=bildungsgaenge.json"},
+    )
+
+
+@bp.route("/bildungsgaenge/import", methods=["POST"])
+@login_required
+@role_required("admin")
+def bildungsgaenge_import():
+    """Gegenstück zu bildungsgaenge_export. Idempotent per Code: bestehende
+    Bildungsgaenge werden aktualisiert (Name/Abteilung), neue angelegt -
+    nichts wird geloescht, damit ein Import nie versehentlich Daten
+    (Kreise-/Klassen-Zuordnungen haengen am Code) zerstoert.
+    """
+    form = BildungsgangImportForm()
+    if not form.validate_on_submit():
+        for error in form.datei.errors:
+            flash(error, "error")
+        return redirect(url_for("admin.bildungsgaenge_view"))
+
+    try:
+        daten = json.load(form.datei.data.stream)
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        flash("Datei ist kein gültiges JSON.", "error")
+        return redirect(url_for("admin.bildungsgaenge_view"))
+
+    if not isinstance(daten, list):
+        flash("Unerwartetes JSON-Format (Liste erwartet).", "error")
+        return redirect(url_for("admin.bildungsgaenge_view"))
+
+    angelegt = aktualisiert = uebersprungen = 0
+    for eintrag in daten:
+        if not isinstance(eintrag, dict):
+            uebersprungen += 1
+            continue
+        name = (eintrag.get("name") or "").strip()
+        code = (eintrag.get("code") or "").strip()
+        abteilung_name = (eintrag.get("abteilung") or "").strip() or None
+        if not name or not code:
+            uebersprungen += 1
+            continue
+
+        abteilung = None
+        if abteilung_name:
+            abteilung = Abteilung.query.filter_by(name=abteilung_name).first()
+            if abteilung is None:
+                abteilung = Abteilung(name=abteilung_name)
+                db.session.add(abteilung)
+                db.session.flush()
+
+        bildungsgang = Bildungsgang.query.filter_by(code=code).first()
+        if bildungsgang is None:
+            db.session.add(Bildungsgang(
+                name=name, code=code,
+                abteilung_id=abteilung.id if abteilung else None,
+            ))
+            angelegt += 1
+        else:
+            bildungsgang.name = name
+            if abteilung is not None:
+                bildungsgang.abteilung_id = abteilung.id
+            aktualisiert += 1
+
+    db.session.commit()
+    flash(
+        f"Import fertig: {angelegt} angelegt, {aktualisiert} aktualisiert"
+        + (f", {uebersprungen} übersprungen (unvollständig)." if uebersprungen else "."),
+        "success",
+    )
+    return redirect(url_for("admin.bildungsgaenge_view"))
 
 
 @bp.route("/abteilungen/hinzufuegen", methods=["POST"])

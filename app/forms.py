@@ -169,6 +169,18 @@ class VorlageForm(FlaskForm):
     submit = SubmitField("Hochladen")
 
 
+class BildungsgangImportForm(FlaskForm):
+    datei = FileField(
+        "JSON-Datei (Export von \"Bildungsgänge exportieren\")",
+        validators=[
+            DataRequired("Bitte eine Datei auswählen."),
+            FileAllowed(["json"], "Nur JSON erlaubt."),
+            FileSize(max_size=2 * 1024 * 1024, message="Datei zu groß (max. 2 MB)."),
+        ],
+    )
+    submit = SubmitField("Importieren")
+
+
 class LogoForm(FlaskForm):
     logo = FileField(
         "Logo (PNG oder JPG, max. {} MB)".format(LOGO_MAX_SIZE_MB),

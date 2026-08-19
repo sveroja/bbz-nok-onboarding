@@ -54,6 +54,11 @@
             class="d-flex align-items-end gap-1">
         <input type="hidden" name="zug_id" value="{{ zug_filter or '' }}">
         <div>
+          <label for="erster_schultag" class="form-label m-0 small">Erster Schultag</label>
+          <input type="date" id="erster_schultag" name="erster_schultag"
+                 class="form-control form-control-sm" value="{{ heute }}" required>
+        </div>
+        <div>
           <label for="letzter_schultag" class="form-label m-0 small">Letzter Schultag</label>
           <input type="date" id="letzter_schultag" name="letzter_schultag"
                  class="form-control form-control-sm" required>
@@ -115,6 +120,9 @@
         <form method="post" action="{{ url_for('teacher.assign_zug', reg_id=r.id) }}">
           {{ action_form.hidden_tag() }}
           {% set passende_klassen = beruf_to_klassen.get(r.beruf) or klassen %}
+          {% if r.zug and r.zug not in passende_klassen %}
+            {% set passende_klassen = passende_klassen + [r.zug] %}
+          {% endif %}
           {% set vorschlag_id = zug_vorschlaege.get(r.id) %}
           <select name="zug_id" class="form-select form-select-sm" onchange="this.form.submit()">
             <option value="">– nicht zugeordnet –</option>

@@ -12,5 +12,19 @@
       {{ form.submit(class="btn btn-primary w-100") }}
     </form>
   </div>
+
+  {% if commits %}
+  <div class="col-md-4">
+    <h5>Letzte Änderungen</h5>
+    <ul class="list-unstyled small">
+      {% for c in commits %}
+        <li class="mb-2">
+          <span class="text-muted">{{ c.date }}</span> — {{ c.message }}
+        </li>
+      {% endfor %}
+    </ul>
+    <a href="https://github.com/sveroja/bbz-nok-onboarding" target="_blank" rel="noopener" class="text-muted small">Quellcode auf GitHub</a>
+  </div>
+  {% endif %}
 </div>
 {% endblock %}

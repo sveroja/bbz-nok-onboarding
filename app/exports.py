@@ -79,8 +79,15 @@ def build_klassen_lk_excel(regs) -> io.BytesIO:
 # Klassenbuch-Import (schreibt in die admin-hochgeladene Vorlage)
 # ---------------------------------------------------------------------------
 
-def build_klassenbuch_excel(regs, letzter_schultag: Optional[date]) -> io.BytesIO:
-    """Wirft FileNotFoundError, wenn keine Vorlage hochgeladen wurde."""
+def build_klassenbuch_excel(
+    regs, erster_schultag: Optional[date], letzter_schultag: Optional[date],
+) -> io.BytesIO:
+    """Wirft FileNotFoundError, wenn keine Vorlage hochgeladen wurde.
+
+    "erster Schultag"/"letzter Schultag" sind Kopfzeilen-Spalten der Vorlage
+    (siehe "Klasse - Datum import digitales Klassenbuch.xlsx") - ein
+    einheitliches Datum fuer den gesamten Export, kein Pro-SuS-Feld.
+    """
     path = vorlagen.vorlage_path("klassenbuch")
     if not path.exists():
         raise FileNotFoundError("Klassenbuch-Vorlage wurde noch nicht hochgeladen.")
@@ -95,7 +102,7 @@ def build_klassenbuch_excel(regs, letzter_schultag: Optional[date]) -> io.BytesI
         ws.cell(row=row, column=3, value=r.zug.name if r.zug else None)
         ws.cell(row=row, column=4, value=r.geburtsdatum)
         ws.cell(row=row, column=5, value=GESCHLECHT_KURZFORM.get(r.geschlecht, ""))
-        ws.cell(row=row, column=6, value=r.eintrittsdatum)
+        ws.cell(row=row, column=6, value=erster_schultag)
         ws.cell(row=row, column=7, value=letzter_schultag)
         ws.cell(row=row, column=8, value=r.email)
         row += 1

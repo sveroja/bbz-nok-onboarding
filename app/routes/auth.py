@@ -7,6 +7,7 @@ from flask_login import login_user, logout_user, login_required, current_user
 from ..extensions import limiter
 from ..models import User
 from ..forms import LoginForm
+from .. import changelog
 
 bp = Blueprint("auth", __name__)
 
@@ -36,7 +37,7 @@ def login():
             flash("Erfolgreich angemeldet.", "success")
             return redirect(_post_login_redirect(user))
         flash("Benutzername oder Passwort falsch.", "error")
-    return render_template("login.html", form=form)
+    return render_template("login.html", form=form, commits=changelog.recent_commits())
 
 
 @bp.route("/logout")

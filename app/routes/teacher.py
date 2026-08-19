@@ -2,7 +2,7 @@
 import csv
 import io
 from collections import defaultdict
-from datetime import datetime
+from datetime import date, datetime
 
 from flask import (
     Blueprint, render_template, redirect, request, session, url_for, flash, send_file
@@ -19,6 +19,15 @@ from ..fluentform import sync_submissions, delete_remote_submission
 bp = Blueprint("teacher", __name__, url_prefix="/teacher")
 
 SESSION_KLASSE_KEY = "aktive_klasse_id"  # None/fehlt = noch nicht gewaehlt, 0 = "alle"
+
+
+def _ist_unterklasse(klasse) -> bool:
+    """Nur Klassen mit Buchstaben-Suffix (z.B. "ausbau26a") sind ein
+    waehlbarer Zug - eine unaufgeteilte Basis-Klasse ("ausbau26") ist noch
+    kein Zug, sondern erst der Container fuer die spaeter angelegten
+    Unterklassen.
+    """
+    return klasse.name[-1:].isalpha()
 
 
 def _beruf_to_klassen_map(klassen):
@@ -126,7 +135,7 @@ def registrations():
         return redirect(url_for("teacher.bereich"))
 
     regs, aktive_klasse, zug_filter = _current_filtered_regs()
-    klassen = Klasse.query.order_by(Klasse.name).all()
+    klassen = [k for k in Klasse.query.order_by(Klasse.name).all() if _ist_unterklasse(k)]
     beruf_to_klassen = _beruf_to_klassen_map(klassen)
     duplicate_ids = _find_duplicate_ids()
     beruf_namen = {b.code: b.name for b in Bildungsgang.query.all() if b.code}
@@ -145,6 +154,7 @@ def registrations():
         zug_filter=zug_filter,
         aktive_klasse=aktive_klasse,
         duplicate_ids=duplicate_ids,
+        heute=date.today().isoformat(),
     )
 
 
@@ -295,15 +305,18 @@ def klassen():
 
     # Bildungsgang-Checkboxen im Formular nach Abteilung gruppieren, damit man
     # sich bei mittlerweile ~70 Berufen nicht mehr durch eine flache Liste
-    # suchen muss.
+    # suchen muss. Gruppierung ueber den Code (= Wert der Checkbox/choices),
+    # nicht den Namen - Abgleich mit subfield.data im Template braucht den Code.
     abteilungen = Abteilung.query.order_by(Abteilung.name).all()
     gruppen = [
-        (a.name, sorted(b.name for b in a.bildungsgang)) for a in abteilungen
+        (a.name, [b.code for b in sorted(a.bildungsgang, key=lambda b: b.name) if b.code])
+        for a in abteilungen
     ]
-    zugeordnete_namen = {b.name for a in abteilungen for b in a.bildungsgang}
-    ohne_abteilung = sorted(
-        name for name, _ in form.bildungsgaenge.choices if name not in zugeordnete_namen
-    )
+    ohne_abteilung = [
+        b.code for b in Bildungsgang.query.filter_by(abteilung_id=None)
+                                            .order_by(Bildungsgang.name).all()
+        if b.code
+    ]
 
     return render_template(
         "teacher_klassen.html", form=form, klassen=alle_klassen,
@@ -387,16 +400,18 @@ def export_klassen_lk():
 @login_required
 @role_required("teacher", "admin")
 def export_klassenbuch():
+    erster_schultag_raw = request.args.get("erster_schultag", "").strip()
     letzter_schultag_raw = request.args.get("letzter_schultag", "").strip()
     try:
+        erster_schultag = datetime.strptime(erster_schultag_raw, "%Y-%m-%d").date()
         letzter_schultag = datetime.strptime(letzter_schultag_raw, "%Y-%m-%d").date()
     except ValueError:
-        flash("Bitte einen gültigen 'letzter Schultag' angeben.", "error")
+        flash("Bitte 'erster Schultag' und 'letzter Schultag' angeben.", "error")
         return redirect(url_for("teacher.registrations"))
 
     regs, _aktive_klasse, _zug_filter = _current_filtered_regs()
     try:
-        buf = exports.build_klassenbuch_excel(regs, letzter_schultag)
+        buf = exports.build_klassenbuch_excel(regs, erster_schultag, letzter_schultag)
     except FileNotFoundError as exc:
         flash(f"{exc} Siehe Admin → Export-Vorlagen.", "error")
         return redirect(url_for("teacher.registrations"))

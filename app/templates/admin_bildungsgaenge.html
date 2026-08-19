@@ -9,6 +9,32 @@
   Anzeige im Tool (= Label in Fluent Forms).
 </p>
 
+<div class="card mb-4">
+  <div class="card-body">
+    <h5 class="card-title">Export / Import</h5>
+    <p class="text-muted small mb-2">
+      Zum Übertragen der Abteilungen/Bildungsgänge auf einen anderen Server
+      (z.B. Migration), ohne alles per Hand nachzupflegen. Import ist
+      idempotent per Code: bestehende Einträge werden aktualisiert, nichts
+      wird gelöscht.
+    </p>
+    <div class="d-flex gap-3 align-items-end flex-wrap">
+      <a href="{{ url_for('admin.bildungsgaenge_export') }}" class="btn btn-outline-secondary">
+        Bildungsgänge exportieren (JSON)
+      </a>
+      <form method="post" action="{{ url_for('admin.bildungsgaenge_import') }}"
+            enctype="multipart/form-data" class="d-flex gap-2 align-items-end">
+        {{ import_form.hidden_tag() }}
+        <div>
+          {{ import_form.datei.label(class="form-label") }}
+          {{ import_form.datei(class="form-control") }}
+        </div>
+        {{ import_form.submit(class="btn btn-outline-secondary") }}
+      </form>
+    </div>
+  </div>
+</div>
+
 <div class="row mb-4">
   <div class="col-md-6">
     <div class="card">
