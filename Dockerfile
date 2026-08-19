@@ -7,6 +7,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
+# git: nur fuer die Release-Historie auf der Startseite (liest git log zur
+# Laufzeit), keine Build-Abhaengigkeit.
+RUN apt-get update && apt-get install -y --no-install-recommends git \
+    && rm -rf /var/lib/apt/lists/*
+
 # Non-root user für die App
 RUN groupadd -r app && useradd -r -g app -d /app -s /sbin/nologin app
 

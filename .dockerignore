@@ -14,8 +14,8 @@ venv/
 .DS_Store
 Thumbs.db
 
-# Git
-.git/
+# Git-Metadaten werden bewusst NICHT ausgeschlossen: .git wird fuer die
+# Release-Historie auf der Startseite (git log zur Laufzeit) gebraucht.
 .gitignore
 
 # Doku ist nett im Repo, aber nicht im Image nötig
