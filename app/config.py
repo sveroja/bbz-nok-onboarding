@@ -36,6 +36,15 @@ class BaseConfig:
     FLUENTFORM_FORM_ID = os.environ.get("FLUENTFORM_FORM_ID", "")
     FLUENTFORM_USERNAME = os.environ.get("FLUENTFORM_USERNAME", "")
     FLUENTFORM_PASSWORD = os.environ.get("FLUENTFORM_PASSWORD", "")
+    # Aufbewahrungsfrist der Original-Submissions in WordPress (Fluent Forms
+    # "Einträge automatisch löschen"). Nicht per API abrufbar - daher hier
+    # als Zahl pflegen. 0 = Feature aus (kein Hinweis in der Übersicht).
+    try:
+        FLUENTFORM_RETENTION_DAYS = int(
+            os.environ.get("FLUENTFORM_RETENTION_DAYS", "0") or 0
+        )
+    except ValueError:
+        FLUENTFORM_RETENTION_DAYS = 0
 
     # Rate-Limit-Storage (in-Memory reicht für eine Instanz)
     RATELIMIT_STORAGE_URI = "memory://"

@@ -67,6 +67,7 @@ FIELD_MAPPING = {
     "foerderbedarf":           "foerderbedarf",
     "foerderschwerpunkt":      "foerderschwerpunkt",
     "foerderbedarf_art":       "foerderbedarf_art",
+    "letztesfoerderzentrum":   "foerderzentrum",
 
     # Sektion 4 - Eltern/Ansprechpartner
     "eltern_nachname":             "eltern_nachname",
@@ -111,6 +112,8 @@ FIELD_MAPPING = {
     "art_abschluss_letzte_schule":  "art_abschluss_letzte_schule",
     "allgemeinbildender_abschluss": "allgemeinbildender_abschluss",
     "lrs":                          "lrs",
+    "jahreenglisch":               "esa_5_jahre_englisch",
+    "noteenglisch":                "esa_englisch_ausreichend",
 }
 
 # Felder, die als Datum (dd.mm.YYYY) geparst werden müssen
@@ -131,6 +134,7 @@ BOOL_FIELDS = {
     "umschulungsvertrag_vorhanden", "kostenuebernahme_vorhanden",
     "mit_abschluss_beendet", "lrs",
     "zug_bool",
+    "esa_5_jahre_englisch", "esa_englisch_ausreichend",
 }
 
 # Felder, die wir aus den WP-Daten ignorieren (WP-internes Zeug)

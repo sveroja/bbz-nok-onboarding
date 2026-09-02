@@ -111,6 +111,12 @@
       </tbody>
     </table>
     </div>
+    <p class="text-muted small mt-2">
+      Klassenlehrer/in, erster und letzter Schultag werden im Block
+      „Gemeinsame Daten" der
+      <a href="{{ url_for('teacher.registrations') }}">Anmeldungsübersicht</a>
+      gepflegt.
+    </p>
     {% else %}
       <p class="text-muted">Noch keine Klassen angelegt.</p>
     {% endif %}

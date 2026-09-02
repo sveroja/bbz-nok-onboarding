@@ -107,6 +107,10 @@ class RegistrationLKForm(FlaskForm):
     sprachniveau_nachweis = BooleanField(
         "DaZ-Zertifikat liegt vor", validators=[OptionalValidator()],
     )
+    zeugnis_geprueft = BooleanField(
+        "Zeugnis geprüft (setzt das Datum auf heute)",
+        validators=[OptionalValidator()],
+    )
     submit = SubmitField("Speichern")
 
 

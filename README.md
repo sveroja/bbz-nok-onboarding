@@ -112,6 +112,18 @@ Beides macht dasselbe: holt alle neuen Submissions aus WordPress ab,
 Dubletten werden über die `external_id` (Fluent-Forms-Submission-ID)
 erkannt und übersprungen – mehrfaches Syncen ist also gefahrlos.
 
+### Dev: Anmeldungen zurücksetzen (für erneuten Sync-Test)
+
+```bash
+docker compose exec app flask --app run.py reset-registrations
+```
+
+Löscht **nur** die `registration`-Tabelle (mit Rückfrage, `--yes` überspringt
+sie) – Bildungsgänge, Klassen, Nutzer, PLZ-Regel bleiben unberührt. Danach
+holt `sync-fluentform` alle Submissions erneut frisch (die `external_id`-
+Dedup-Prüfung greift ja nicht mehr). Nur für Dev/Test gedacht, nicht für
+eine Produktivinstanz.
+
 ### Weitere Nutzer anlegen
 
 ```bash
@@ -239,7 +251,7 @@ bbz-nok-onboarding/
     ├── forms.py          # Flask-WTF Forms (Login, Admin, Aktionen)
     ├── plz.py            # OpenPLZ-Anbindung mit Kreis-/Bezirks-Check
     ├── fluentform.py     # Fluent-Forms-Sync (APIClient, Mapping, sync_submissions)
-    ├── cli.py            # init-db, create-user, sync-fluentform
+    ├── cli.py            # init-db, create-user, sync-fluentform, reset-registrations
     ├── routes/
     │   ├── public.py     # /
     │   ├── auth.py       # /login, /logout

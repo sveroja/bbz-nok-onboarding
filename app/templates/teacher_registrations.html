@@ -37,46 +37,70 @@
 
 <div class="card mb-3">
   <div class="card-body">
+    <h5 class="card-title">
+      Gemeinsame Daten{% if gemeinsame_klasse %} – {{ gemeinsame_klasse.name }}{% endif %}
+    </h5>
+    {% if gemeinsame_klasse %}
+    <p class="card-text text-muted small">
+      Gelten für die ganze Klasse{% if zug_filter %} bzw. den gewählten Zug{% endif %}:
+      Klassenlehrer/in und erster Schultag landen im Stammdatenblatt bzw.
+      WebUntis-Export. Der <em>letzte</em> Schultag wird pro Schüler/in aus
+      dem Ausbildungsende berechnet (nächster 31.01. bzw. 31.07.).
+    </p>
+    <form method="post"
+          action="{{ url_for('teacher.update_klasse', klasse_id=gemeinsame_klasse.id) }}"
+          class="row g-2 align-items-end">
+      {{ action_form.hidden_tag() }}
+      <div class="col-auto">
+        <label for="gd_lehrkraft" class="form-label m-0 small">Klassenlehrer/in</label>
+        <input type="text" id="gd_lehrkraft" name="zustaendige_lehrkraft" maxlength="150"
+               class="form-control form-control-sm" style="width: 14rem;"
+               value="{{ gemeinsame_klasse.zustaendige_lehrkraft or '' }}">
+      </div>
+      <div class="col-auto">
+        <label for="gd_eintrittsdatum" class="form-label m-0 small">Erster Schultag (Eintrittsdatum)</label>
+        <input type="date" id="gd_eintrittsdatum" name="eintrittsdatum"
+               class="form-control form-control-sm"
+               value="{{ gemeinsame_klasse.eintrittsdatum.isoformat() if gemeinsame_klasse.eintrittsdatum else heute }}">
+      </div>
+      <div class="col-auto">
+        <button type="submit" class="btn btn-outline-primary btn-sm">Speichern</button>
+      </div>
+    </form>
+    {% else %}
+    <p class="card-text text-muted mb-0">
+      Bitte oben eine Klasse (Bereich) wählen – bei mehrzügigen Bildungsgängen
+      zusätzlich den Zug – dann lassen sich hier Klassenlehrer/in und erster
+      Schultag pflegen.
+    </p>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card mb-3">
+  <div class="card-body">
     <h5 class="card-title">Exporte</h5>
     <p class="card-text text-muted">
-      Beziehen sich immer auf die aktuell angezeigten Anmeldungen (Klasse +
-      Zug-Filter oben).
+      Beziehen sich auf die aktuell angezeigten Anmeldungen (Klasse +
+      Zug-Filter oben), eingeschränkt auf die in der Tabelle angehakten
+      Zeilen.
     </p>
-    <div class="d-flex flex-wrap gap-2 align-items-end">
-      <a href="{{ url_for('teacher.export', zug_id=zug_filter) }}"
-         class="btn btn-outline-primary btn-sm">CSV-Export</a>
-      <a href="{{ url_for('teacher.export_klassen_lk', zug_id=zug_filter) }}"
-         class="btn btn-outline-primary btn-sm">Excel für Klassen-LK</a>
-      <a href="{{ url_for('teacher.export_stammdatenblatt', zug_id=zug_filter) }}"
-         class="btn btn-outline-primary btn-sm">Stammdatenblätter (PDF)</a>
-
-      <form method="get" action="{{ url_for('teacher.export_klassenbuch') }}"
-            class="d-flex align-items-end gap-1">
-        <input type="hidden" name="zug_id" value="{{ zug_filter or '' }}">
-        <div>
-          <label for="erster_schultag" class="form-label m-0 small">Erster Schultag</label>
-          <input type="date" id="erster_schultag" name="erster_schultag"
-                 class="form-control form-control-sm" value="{{ heute }}" required>
-        </div>
-        <div>
-          <label for="letzter_schultag" class="form-label m-0 small">Letzter Schultag</label>
-          <input type="date" id="letzter_schultag" name="letzter_schultag"
-                 class="form-control form-control-sm" required>
-        </div>
-        <button type="submit" class="btn btn-outline-primary btn-sm">WebUntis</button>
-      </form>
-
-      <form method="get" action="{{ url_for('teacher.export_daz') }}"
-            class="d-flex align-items-end gap-1">
-        <input type="hidden" name="zug_id" value="{{ zug_filter or '' }}">
-        <div>
-          <label for="schuljahr" class="form-label m-0 small">Schuljahr</label>
-          <input type="text" id="schuljahr" name="schuljahr" placeholder="2026/27"
-                 class="form-control form-control-sm" style="width: 6rem;" required>
-        </div>
-        <button type="submit" class="btn btn-outline-primary btn-sm">DaZ-Statistik</button>
-      </form>
-    </div>
+    <form method="post" id="exportForm" class="d-flex flex-wrap gap-2 align-items-end">
+      {{ action_form.hidden_tag() }}
+      <input type="hidden" name="zug_id" value="{{ zug_filter or '' }}">
+      <button type="submit" formaction="{{ url_for('teacher.export') }}"
+              class="btn btn-outline-primary btn-sm">CSV-Export</button>
+      <button type="submit" formaction="{{ url_for('teacher.export_klassen_lk') }}"
+              class="btn btn-outline-primary btn-sm">Excel für Klassen-LK</button>
+      <button type="submit" formaction="{{ url_for('teacher.export_stammdatenblatt') }}"
+              class="btn btn-outline-primary btn-sm">Stammdatenblätter (PDF)</button>
+      <button type="submit" formaction="{{ url_for('teacher.export_namensschilder') }}"
+              class="btn btn-outline-primary btn-sm">Namensschilder (PDF)</button>
+      <button type="submit" formaction="{{ url_for('teacher.export_klassenbuch') }}"
+              class="btn btn-outline-primary btn-sm">WebUntis</button>
+      <button type="submit" formaction="{{ url_for('teacher.export_daz') }}"
+              class="btn btn-outline-primary btn-sm">DaZ-Statistik</button>
+    </form>
   </div>
 </div>
 
@@ -85,7 +109,11 @@
 <table class="table table-striped align-middle">
   <thead>
     <tr>
-      <th>Nr. <span class="text-muted small">({{ regs|length }})</span></th>
+      <th>
+        lfd. Nr.
+        <span class="badge rounded-pill text-bg-secondary fw-normal align-middle"
+              title="Anzahl angezeigter Anmeldungen">{{ regs|length }}</span>
+      </th>
       <th>Eingegangen</th>
       <th>Name</th>
       <th>Beruf</th>
@@ -100,13 +128,31 @@
               title="Kann z.B. genutzt werden, um den Bearbeitungsfortschritt zu markieren (u.a. Zeugnis geprüft).">ⓘ</span>
       </th>
       <th class="text-end">Aktionen</th>
+      <th class="text-center">
+        Auswahl<br>
+        <input type="checkbox" id="checkAll" class="form-check-input mt-1" checked
+               title="Alle ein-/ausschalten">
+      </th>
     </tr>
   </thead>
   <tbody>
   {% for r in regs %}
     <tr>
       <td>{{ loop.index }}</td>
-      <td>{{ r.created_at.strftime("%d.%m.%Y %H:%M") if r.created_at }}</td>
+      <td>
+        {{ r.created_at.strftime("%d.%m.%Y %H:%M") if r.created_at }}
+        {% set rest = wp_rest_tage.get(r.id) %}
+        {% if rest is not none %}
+          <br>
+          {% if rest <= 0 %}
+            <span class="badge bg-secondary" title="Aufbewahrungsfrist in WordPress abgelaufen - nur noch hier gespeichert">WP-Original gelöscht</span>
+          {% elif rest <= 3 %}
+            <span class="badge bg-warning text-dark" title="WordPress löscht das Original automatisch">WP: noch {{ rest }} Tag{{ 'e' if rest != 1 }}</span>
+          {% else %}
+            <span class="text-muted small" title="WordPress löscht das Original automatisch">WP: noch {{ rest }} Tage</span>
+          {% endif %}
+        {% endif %}
+      </td>
       <td>
         {{ r.vorname }} {{ r.nachname }}
         {% if r.id in duplicate_ids %}
@@ -171,6 +217,10 @@
           </form>
         </div>
       </td>
+      <td class="text-center">
+        <input type="checkbox" name="reg_ids" value="{{ r.id }}" checked
+               form="exportForm" class="form-check-input reg-check">
+      </td>
     </tr>
   {% endfor %}
   </tbody>
@@ -179,4 +229,23 @@
 {% else %}
   <p class="text-muted">Noch keine Anmeldungen vorhanden.</p>
 {% endif %}
+
+<script>
+(function () {
+  var checkAll = document.getElementById("checkAll");
+  if (!checkAll) return;
+  var boxes = function () {
+    return Array.prototype.slice.call(document.querySelectorAll(".reg-check"));
+  };
+  checkAll.addEventListener("change", function () {
+    boxes().forEach(function (b) { b.checked = checkAll.checked; });
+  });
+  document.addEventListener("change", function (e) {
+    if (!e.target.classList || !e.target.classList.contains("reg-check")) return;
+    var all = boxes();
+    checkAll.checked = all.every(function (b) { return b.checked; });
+    checkAll.indeterminate = !checkAll.checked && all.some(function (b) { return b.checked; });
+  });
+})();
+</script>
 {% endblock %}

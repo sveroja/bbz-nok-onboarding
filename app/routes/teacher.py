@@ -1,11 +1,13 @@
 """Teacher-Bereich: Anmeldungen ansehen, prüfen, löschen, exportieren, syncen."""
 import csv
 import io
+import re
 from collections import defaultdict
 from datetime import date, datetime
 
 from flask import (
-    Blueprint, render_template, redirect, request, session, url_for, flash, send_file
+    Blueprint, current_app, render_template, redirect, request, session,
+    url_for, flash, send_file,
 )
 from flask_login import login_required, current_user
 
@@ -85,11 +87,17 @@ def _find_duplicate_ids():
 
 def _current_filtered_regs():
     """Anmeldungen nach demselben Filter wie die aktuelle Uebersicht:
-    aktiver Bereich (Session) + optionaler Zug-Query-Parameter. Wird von
-    der Uebersicht UND allen Export-Routen genutzt, damit ein Export immer
+    aktiver Bereich (Session) + optionaler Zug-Filter. Wird von der
+    Uebersicht UND allen Export-Routen genutzt, damit ein Export immer
     exakt das exportiert, was gerade sichtbar ist.
+
+    `request.values` statt `request.args`, damit die Export-Formulare den
+    Zug-Filter auch per POST mitschicken koennen. Zusaetzlich: wenn
+    `reg_ids` uebergeben werden (Zeilen-Auswahl per Checkbox in der
+    Uebersicht), wird die Ergebnismenge darauf eingeschraenkt - nie ueber
+    den Klasse/Zug-Filter hinaus.
     """
-    zug_filter = request.args.get("zug_id", type=int)
+    zug_filter = request.values.get("zug_id", type=int)
     aktive_klasse_id = session.get(SESSION_KLASSE_KEY) or None
     aktive_klasse = db.session.get(Klasse, aktive_klasse_id) if aktive_klasse_id else None
 
@@ -99,7 +107,33 @@ def _current_filtered_regs():
         query = query.filter(Registration.beruf.in_(bildungsgaenge))
     if zug_filter:
         query = query.filter(Registration.zug_id == zug_filter)
+
+    reg_ids = request.values.getlist("reg_ids", type=int)
+    if reg_ids:
+        query = query.filter(Registration.id.in_(reg_ids))
     return query.all(), aktive_klasse, zug_filter
+
+
+def _klassen_suffix(aktive_klasse, zug_filter):
+    """'_ELI026a' fuer Export-Dateinamen (leer, wenn keine Klasse im Kontext)."""
+    k = _gemeinsame_klasse(aktive_klasse, zug_filter)
+    if not k:
+        return ""
+    safe = re.sub(r"[^A-Za-z0-9_-]+", "-", k.name).strip("-")
+    return f"_{safe}" if safe else ""
+
+
+def _gemeinsame_klasse(aktive_klasse, zug_filter):
+    """Klasse, deren "gemeinsame Daten" (Klassenlehrer, erster/letzter
+    Schultag) fuer die aktuelle Ansicht gelten: der gefilterte Zug, sonst
+    der gewaehlte Bereich. Bei mehrzuegigen Bildungsgaengen hat jeder Zug
+    eigene Daten - daher zuerst der Zug-Filter.
+    """
+    if zug_filter:
+        k = db.session.get(Klasse, zug_filter)
+        if k is not None:
+            return k
+    return aktive_klasse
 
 
 @bp.route("/")
@@ -141,6 +175,16 @@ def registrations():
     beruf_namen = {b.code: b.name for b in Bildungsgang.query.all() if b.code}
     zug_vorschlaege = _zug_vorschlaege(regs, beruf_to_klassen, klassen)
 
+    # Wie lange existiert das Original noch bei Fluent Forms? (Frist aus der
+    # .env, da nicht per API abrufbar.) Nur fuer synchronisierte Anmeldungen.
+    retention = current_app.config.get("FLUENTFORM_RETENTION_DAYS", 0)
+    wp_rest_tage = {}
+    if retention:
+        heute = date.today()
+        for r in regs:
+            if r.external_id and r.created_at:
+                wp_rest_tage[r.id] = retention - (heute - r.created_at.date()).days
+
     # ActionForm einmal für CSRF-Token in jedem Zeilen-Button
     action_form = ActionForm()
     return render_template(
@@ -153,7 +197,9 @@ def registrations():
         zug_vorschlaege=zug_vorschlaege,
         zug_filter=zug_filter,
         aktive_klasse=aktive_klasse,
+        gemeinsame_klasse=_gemeinsame_klasse(aktive_klasse, zug_filter),
         duplicate_ids=duplicate_ids,
+        wp_rest_tage=wp_rest_tage,
         heute=date.today().isoformat(),
     )
 
@@ -200,13 +246,21 @@ def edit_registration(reg_id):
         flash("Datensatz nicht gefunden.", "error")
         return redirect(url_for("teacher.registrations"))
 
-    form = RegistrationLKForm(obj=reg)
+    form = RegistrationLKForm(
+        obj=reg, zeugnis_geprueft=reg.zeugnis_geprueft_am is not None
+    )
     if form.validate_on_submit():
         reg.hauptlistennummer = form.hauptlistennummer.data or None
         reg.aufnahmedatum = form.aufnahmedatum.data
         reg.eintrittsdatum = form.eintrittsdatum.data
         reg.sprachniveau = form.sprachniveau.data or None
         reg.sprachniveau_nachweis = form.sprachniveau_nachweis.data
+        # "Zeugnis geprüft"-Haken -> Datum auf heute setzen bzw. loeschen.
+        if form.zeugnis_geprueft.data:
+            if reg.zeugnis_geprueft_am is None:
+                reg.zeugnis_geprueft_am = date.today()
+        else:
+            reg.zeugnis_geprueft_am = None
         db.session.commit()
         flash("Klassendaten gespeichert.", "success")
         return redirect(url_for("teacher.registrations"))
@@ -324,6 +378,42 @@ def klassen():
     )
 
 
+@bp.route("/klassen/<int:klasse_id>/gemeinsame-daten", methods=["POST"])
+@login_required
+@role_required("teacher", "admin")
+def update_klasse(klasse_id):
+    """Gemeinsame Daten einer Klasse/eines Zugs: Klassenlehrer/in
+    (= "Klassenlehrer/in" im Stammdatenblatt) und Eintrittsdatum (= erster
+    Schultag). Gepflegt im Block "Gemeinsame Daten" der Anmeldungsuebersicht.
+    """
+    form = ActionForm()
+    if not form.validate_on_submit():
+        flash("Ungültige Anfrage (CSRF).", "error")
+        return redirect(url_for("teacher.registrations"))
+
+    klasse = db.session.get(Klasse, klasse_id)
+    if klasse is None:
+        flash("Klasse nicht gefunden.", "error")
+        return redirect(url_for("teacher.registrations"))
+
+    klasse.zustaendige_lehrkraft = (
+        request.form.get("zustaendige_lehrkraft", "").strip() or None
+    )
+    raw = request.form.get("eintrittsdatum", "").strip()
+    if not raw:
+        klasse.eintrittsdatum = None
+    else:
+        try:
+            klasse.eintrittsdatum = datetime.strptime(raw, "%Y-%m-%d").date()
+        except ValueError:
+            flash("Ungültiges Datum beim Eintrittsdatum.", "error")
+            return redirect(url_for("teacher.registrations"))
+
+    db.session.commit()
+    flash(f"Gemeinsame Daten für '{klasse.name}' gespeichert.", "success")
+    return redirect(url_for("teacher.registrations"))
+
+
 @bp.route("/klassen/<int:klasse_id>/delete", methods=["POST"])
 @login_required
 @role_required("teacher", "admin")
@@ -344,7 +434,7 @@ def delete_klasse(klasse_id):
     return redirect(url_for("teacher.klassen"))
 
 
-@bp.route("/export")
+@bp.route("/export", methods=["GET", "POST"])
 @login_required
 @role_required("teacher", "admin")
 def export():
@@ -384,67 +474,77 @@ def export():
     )
 
 
-@bp.route("/export/klassen-lk")
+@bp.route("/export/klassen-lk", methods=["GET", "POST"])
 @login_required
 @role_required("teacher", "admin")
 def export_klassen_lk():
-    regs, _aktive_klasse, _zug_filter = _current_filtered_regs()
+    regs, aktive_klasse, zug_filter = _current_filtered_regs()
     buf = exports.build_klassen_lk_excel(regs)
+    name = f"anmeldungen_klassen-lk{_klassen_suffix(aktive_klasse, zug_filter)}.xlsx"
     return send_file(
-        buf, as_attachment=True, download_name="anmeldungen_klassen-lk.xlsx",
+        buf, as_attachment=True, download_name=name,
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
 
 
-@bp.route("/export/klassenbuch")
+@bp.route("/export/klassenbuch", methods=["GET", "POST"])
 @login_required
 @role_required("teacher", "admin")
 def export_klassenbuch():
-    erster_schultag_raw = request.args.get("erster_schultag", "").strip()
-    letzter_schultag_raw = request.args.get("letzter_schultag", "").strip()
-    try:
-        erster_schultag = datetime.strptime(erster_schultag_raw, "%Y-%m-%d").date()
-        letzter_schultag = datetime.strptime(letzter_schultag_raw, "%Y-%m-%d").date()
-    except ValueError:
-        flash("Bitte 'erster Schultag' und 'letzter Schultag' angeben.", "error")
+    regs, aktive_klasse, zug_filter = _current_filtered_regs()
+    gem_klasse = _gemeinsame_klasse(aktive_klasse, zug_filter)
+
+    # Erster Schultag = Eintrittsdatum aus den "Gemeinsamen Daten" der Klasse
+    # (bzw. des gefilterten Zugs); ein mitgeschickter Wert (Override) sticht.
+    # Der letzte Schultag steht pro SuS an der Anmeldung.
+    raw = request.values.get("eintrittsdatum", "").strip()
+    if raw:
+        try:
+            erster_schultag = datetime.strptime(raw, "%Y-%m-%d").date()
+        except ValueError:
+            erster_schultag = None
+    else:
+        erster_schultag = getattr(gem_klasse, "eintrittsdatum", None)
+
+    if not erster_schultag:
+        flash(
+            "Bitte zuerst unter 'Gemeinsame Daten' das Eintrittsdatum "
+            "(erster Schultag) der Klasse eintragen.", "error",
+        )
         return redirect(url_for("teacher.registrations"))
 
-    regs, _aktive_klasse, _zug_filter = _current_filtered_regs()
     try:
-        buf = exports.build_klassenbuch_excel(regs, erster_schultag, letzter_schultag)
+        buf = exports.build_klassenbuch_excel(regs, erster_schultag)
     except FileNotFoundError as exc:
         flash(f"{exc} Siehe Admin → Export-Vorlagen.", "error")
         return redirect(url_for("teacher.registrations"))
 
+    name = f"webuntis{_klassen_suffix(aktive_klasse, zug_filter)}.xlsx"
     return send_file(
-        buf, as_attachment=True, download_name="webuntis.xlsx",
+        buf, as_attachment=True, download_name=name,
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
 
 
-@bp.route("/export/daz")
+@bp.route("/export/daz", methods=["GET", "POST"])
 @login_required
 @role_required("teacher", "admin")
 def export_daz():
-    schuljahr = request.args.get("schuljahr", "").strip()
-    if not schuljahr:
-        flash("Bitte Schuljahr angeben.", "error")
-        return redirect(url_for("teacher.registrations"))
-
-    regs, _aktive_klasse, _zug_filter = _current_filtered_regs()
+    regs, aktive_klasse, zug_filter = _current_filtered_regs()
     try:
-        buf = exports.build_daz_excel(regs, schuljahr)
+        buf = exports.build_daz_excel(regs)
     except FileNotFoundError as exc:
         flash(f"{exc} Siehe Admin → Export-Vorlagen.", "error")
         return redirect(url_for("teacher.registrations"))
 
+    name = f"daz_statistik{_klassen_suffix(aktive_klasse, zug_filter)}.xlsx"
     return send_file(
-        buf, as_attachment=True, download_name="daz_statistik.xlsx",
+        buf, as_attachment=True, download_name=name,
         mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
 
 
-@bp.route("/export/stammdatenblatt")
+@bp.route("/export/stammdatenblatt", methods=["GET", "POST"])
 @login_required
 @role_required("teacher", "admin")
 def export_stammdatenblatt():
@@ -457,6 +557,22 @@ def export_stammdatenblatt():
 
     return send_file(
         buf, as_attachment=True, download_name="stammdatenblaetter.pdf",
+        mimetype="application/pdf",
+    )
+
+
+@bp.route("/export/namensschilder", methods=["GET", "POST"])
+@login_required
+@role_required("teacher", "admin")
+def export_namensschilder():
+    regs, _aktive_klasse, _zug_filter = _current_filtered_regs()
+    if not regs:
+        flash("Keine Anmeldungen für den Namensschild-Export.", "error")
+        return redirect(url_for("teacher.registrations"))
+
+    buf = exports.build_namensschilder_pdf(regs)
+    return send_file(
+        buf, as_attachment=True, download_name="namensschilder.pdf",
         mimetype="application/pdf",
     )
 

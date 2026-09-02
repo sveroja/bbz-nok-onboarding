@@ -1,30 +1,33 @@
 {% extends "base.html" %}
-{% block title %}BBZ Onboarding{% endblock %}
+{% block title %}NOBO{% endblock %}
 {% block content %}
-<div class="row">
-  <div class="col-md-8">
-    <h1>BBZ Onboarding</h1>
-    <p class="lead">
-      Internes Tool für Klassenlehrkräfte zur Verwaltung der
-      Schüleraufnahme.
+<div class="row justify-content-center text-center">
+  <div class="col-lg-8 py-4">
+    {% if has_logo %}
+      <img src="{{ url_for('public.logo') }}" alt="Logo" height="60" class="mb-3">
+    {% endif %}
+    <h1 class="nobo-wordmark display-2 mb-2">NOBO</h1>
+    <p class="lead text-secondary mb-4">
+      Onboarding-Tool für die Schüleraufnahme
     </p>
-    <p>
+    <p class="text-body-secondary mx-auto" style="max-width: 44rem;">
       Anmeldungen werden über das Online-Formular auf der Schul-Website
-      erfasst und in dieses Tool synchronisiert. Hier können sie geprüft,
-      ergänzt und exportiert werden.
+      erfasst und hierher synchronisiert. Klassenlehrkräfte prüfen,
+      ergänzen und exportieren sie hier – Klasseneinteilung, Stammdatenblatt,
+      WebUntis, DaZ-Statistik und Namensschilder aus einer Hand.
     </p>
 
-    {% if not current_user.is_authenticated %}
-      <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-lg">
-        Anmelden
-      </a>
-    {% else %}
-      {% if current_user.role in ('teacher', 'admin') %}
-        <a href="{{ url_for('teacher.registrations') }}" class="btn btn-primary btn-lg">
+    <div class="mt-4">
+      {% if not current_user.is_authenticated %}
+        <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-lg px-4">
+          Anmelden
+        </a>
+      {% elif current_user.role in ('teacher', 'admin') %}
+        <a href="{{ url_for('teacher.registrations') }}" class="btn btn-primary btn-lg px-4">
           Anmeldungen anzeigen
         </a>
       {% endif %}
-    {% endif %}
+    </div>
   </div>
 </div>
 {% endblock %}

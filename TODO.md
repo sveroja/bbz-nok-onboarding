@@ -1,10 +1,33 @@
 # TODO
 
-Offene Punkte, die bewusst zurückgestellt wurden (kein akuter Handlungsbedarf,
-aber nicht vergessen).
+## Offen / vom Nutzer gegenzuprüfen
 
-- **Datenbereinigung im Tool selbst**: Auf Dauer müssen wir auch unsere
-  eigene Datenbank aufräumen (alte/abgeschlossene Anmeldungen, ggf. nach
-  Ablauf einer Frist). Ergänzt die geplante Bereinigung bei WordPress
-  (siehe Sync/Lösch-Workflow). Noch nicht spezifiziert: welche Frist, was
-  "abgeschlossen" bedeutet, ob Löschen oder nur Archivieren.
+- **Logo für hellen Hintergrund**: Kopfleiste ist jetzt weiß, das aktuelle
+  Logo ist für dunklen Grund. Neues Logo hochladen (gilt auch fürs
+  Namensschild).
+- **WebUntis-Export**: echten Export einmal in Excel öffnen und Farben/
+  Streifen/Datumsformat gegenprüfen (Fix: Tabellen-Range auf alle Zeilen +
+  Schrift-Reset + `DD.MM.YYYY` erzwungen).
+- **Namensschild**: Falt-/Stellgeometrie ggf. anpassen (Name höher/tiefer,
+  Logo-Größe) — auf Rückmeldung.
+- **NOBO-Untertitel** „Onboarding-Tool für die Schüleraufnahme" — Wortlaut
+  ändern, falls gewünscht (Start- + Login-Seite).
+- **`ausbildung_bis` zum Pflichtfeld** im WP-Formular machen (dann ist der
+  berechnete „letzter Schultag" für alle regulären SuS gefüllt).
+
+## Später
+
+- **Ganze Klassen-Bearbeitung**: Name/Bildungsgänge einer bestehenden Klasse
+  ändern (bisher nur Anlegen + Löschen; Klassenlehrer/erster Schultag über
+  „Gemeinsame Daten").
+- **`foerderbedarf_art`**: kommt per Sync rein, wird aber nur als Fallback
+  gezeichnet (wenn `foerderschwerpunkt` leer ist). Klären, ob beide Felder
+  wirklich getrennt gebraucht werden.
+
+## Zurückgestellt
+
+- **Datenbereinigung im Tool selbst**: alte/abgeschlossene Anmeldungen nach
+  Fristablauf löschen/archivieren. Ergänzt die WordPress-Bereinigung
+  (`FLUENTFORM_RETENTION_DAYS` zeigt jetzt schon „WP: noch X Tage" an). Noch
+  nicht spezifiziert: Frist, Definition „abgeschlossen", Löschen vs.
+  Archivieren.

@@ -319,6 +319,13 @@ class Klasse(db.Model):
     zustaendige_lehrkraft = db.Column(db.String(150), nullable=True)
     created_at = db.Column(db.DateTime(timezone=True), default=_utcnow)
 
+    # Gemeinsame Daten fuer die ganze Klasse (LK pflegt sie in der
+    # Anmeldungs-Uebersicht). eintrittsdatum = erster Schultag an unserer
+    # Schule; fliesst in den WebUntis-Export und - als Fallback, wenn an der
+    # Anmeldung nichts steht - ins Stammdatenblatt-PDF. Der letzte Schultag
+    # wird pro SuS aus `ausbildung_bis` berechnet (exports.letzter_schultag).
+    eintrittsdatum = db.Column(db.Date, nullable=True)
+
     bildungsgaenge = db.relationship(
         "KlasseBildungsgang", backref="klasse", cascade="all, delete-orphan"
     )

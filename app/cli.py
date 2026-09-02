@@ -3,6 +3,7 @@
     flask --app run.py init-db
     flask --app run.py create-user <username> <admin|teacher>
     flask --app run.py sync-fluentform
+    flask --app run.py reset-registrations [--yes]   # nur Dev/Test
 """
 import os
 import getpass
@@ -12,13 +13,14 @@ from flask.cli import with_appcontext
 from sqlalchemy import inspect, text
 
 from .extensions import db
-from .models import User, PlzRule
+from .models import User, PlzRule, Registration
 
 
 def register_cli(app):
     app.cli.add_command(init_db)
     app.cli.add_command(create_user)
     app.cli.add_command(sync_fluentform)
+    app.cli.add_command(reset_registrations)
 
 
 NEW_REGISTRATION_COLUMNS = [
@@ -33,6 +35,10 @@ NEW_BILDUNGSGANG_COLUMNS = [
     ("code", "VARCHAR(100)"),
 ]
 
+NEW_KLASSE_COLUMNS = [
+    ("eintrittsdatum", "DATE"),
+]
+
 
 def _ensure_new_columns():
     """Ergaenzt Spalten, die durch spaetere Features zu bestehenden Tabellen
@@ -44,6 +50,7 @@ def _ensure_new_columns():
     for table, columns in (
         ("registration", NEW_REGISTRATION_COLUMNS),
         ("bildungsgang", NEW_BILDUNGSGANG_COLUMNS),
+        ("klasse", NEW_KLASSE_COLUMNS),
     ):
         existing = {col["name"] for col in inspector.get_columns(table)}
         for name, ddl_type in columns:
@@ -148,3 +155,30 @@ def sync_fluentform():
         f"{result['skipped']} bereits vorhanden (übersprungen), "
         f"{result['errors']} Fehler."
     )
+
+
+@click.command("reset-registrations")
+@click.option("--yes", is_flag=True, help="Ohne Rückfrage ausführen.")
+@with_appcontext
+def reset_registrations(yes):
+    """Loescht ALLE Anmeldungen (nur die registration-Tabelle) - fuer Dev/
+    Test, damit z.B. 'flask sync-fluentform' erneut alles frisch von Fluent
+    Forms holt (die external_id-Dedup-Pruefung greift sonst und ueberspringt
+    laengst geholte Submissions). Bildungsgaenge, Klassen, Nutzer und
+    PLZ-Regel bleiben unberuehrt - dafuer nicht gedacht/geeignet auf einer
+    echten Produktivinstanz.
+    """
+    count = Registration.query.count()
+    if count == 0:
+        click.echo("Keine Anmeldungen vorhanden.")
+        return
+
+    if not yes and not click.confirm(
+        f"{count} Anmeldung(en) unwiderruflich löschen?"
+    ):
+        click.echo("Abgebrochen.")
+        return
+
+    Registration.query.delete()
+    db.session.commit()
+    click.echo(f"{count} Anmeldung(en) gelöscht.")

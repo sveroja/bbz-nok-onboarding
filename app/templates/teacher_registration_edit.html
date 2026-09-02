@@ -14,9 +14,16 @@
   {{ render_field(form.aufnahmedatum) }}
   {{ render_field(form.eintrittsdatum) }}
   {{ render_field(form.sprachniveau) }}
-  <div class="form-check mb-3">
+  <div class="form-check">
     {{ form.sprachniveau_nachweis(class="form-check-input") }}
     {{ form.sprachniveau_nachweis.label(class="form-check-label") }}
+  </div>
+  <div class="form-check mb-3">
+    {{ form.zeugnis_geprueft(class="form-check-input") }}
+    {{ form.zeugnis_geprueft.label(class="form-check-label") }}
+    {% if reg.zeugnis_geprueft_am %}
+      <span class="text-muted small">— zuletzt: {{ reg.zeugnis_geprueft_am.strftime("%d.%m.%Y") }}</span>
+    {% endif %}
   </div>
 
   <a href="{{ url_for('teacher.registrations') }}" class="btn btn-link">Zurück</a>

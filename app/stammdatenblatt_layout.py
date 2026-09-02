@@ -33,7 +33,9 @@ TEXT_FIELDS = [
     (1, 329, 42.3, "hauptlistennummer", FONT_SIZE),
     (1, 452, 100.4, "aufnahmedatum", FONT_SIZE),
     (1, 95, 124.2, "zug_name", 7),  # Box ist schmal ausgelegt, kleinere Schrift
-    (1, 235, 124.2, "zug_lehrkraft", FONT_SIZE),
+    # Klassenlehrer-Box: x 238-337 (per pdfplumber). Frueher x=235 (vor dem
+    # Boxanfang) + Schrift 8 -> lange Namen liefen rechts raus.
+    (1, 240, 124.2, "zug_lehrkraft", 7),
     (1, 452, 125.7, "eintrittsdatum", FONT_SIZE),
 
     # Sektion 2 (Schuelerdaten)
@@ -42,16 +44,20 @@ TEXT_FIELDS = [
     (1, 121, 209.4, "vorname", FONT_SIZE),
     (1, 410, 209.4, "geburtsort", FONT_SIZE),
     (1, 121, 234.3, "geburtsname", FONT_SIZE),
-    (1, 310, 233.6, "staatsangehoerigkeit_1", FONT_SIZE),
+    # Wert-Zellen der 1. Staatsangeh./Muttersprache beginnen erst bei x 312.4
+    # (per pdfplumber) - vorher sass der Text auf dem linken Zellenrand.
+    (1, 316, 233.6, "staatsangehoerigkeit_1", FONT_SIZE),
     (1, 470, 233.6, "staatsangehoerigkeit_2", FONT_SIZE),
     (1, 121, 259.0, "geburtsdatum", FONT_SIZE),
-    (1, 308, 258.5, "muttersprache", FONT_SIZE),
+    (1, 316, 258.5, "muttersprache", FONT_SIZE),
     (1, 475, 258.5, "jahr_des_zuzugs", FONT_SIZE),
 
     # Sektion 3 (Adresse/Kontakt)
     (1, 90, 341.9, "wohnt_bei", FONT_SIZE),
     (1, 98, 366.3, "strasse", FONT_SIZE),
-    (1, 474, 367.6, "foerderbedarf_art", FONT_SIZE),
+    # Zelle rechts von "Art:" / direkt unter dem Label "Foerderschwerpunkt:"
+    # (x 469-559). Zeigt den Foerderschwerpunkt, ersatzweise foerderbedarf_art.
+    (1, 472, 367.0, "foerderschwerpunkt_art", 7),
     (1, 98, 392.5, "plz_ort", FONT_SIZE),
     (1, 410, 392.5, "kreis", FONT_SIZE),
     (1, 98, 417.5, "telefon", FONT_SIZE),
@@ -114,10 +120,12 @@ CHECKBOX_FIELDS = [
     (1, 421, 344.9, "konfession", "ev"),
     (1, 443, 344.9, "konfession", "rk"),
     (1, 465, 344.9, "konfession", "isl"),
-    # Foerderbedarf (ja-Zelle 402.5-423.9, nein-Zelle 423.9-446.0 - "nein"
-    # fuellt die Zelle fast komplett, kaum Platz fuers Kreuz)
-    (1, 417, 369.9, "foerderbedarf", True),
-    (1, 445, 369.9, "foerderbedarf", False),
+    # Foerderbedarf: ja-Zelle x 402.4-423.8 ("ja" endet bei 417.9), nein-Zelle
+    # 423.8-445.9 ("nein" fuellt sie fast komplett). Label-Baseline y1 ~366.9
+    # -> Layout-y 368.4 (drawString-Baseline = y - 1.5). Kreuz rechts direkt
+    # hinter dem Label, etwas groesser (frueher zu weit links / zu hoch).
+    (1, 417, 368.4, "foerderbedarf", True, 10),
+    (1, 439, 368.4, "foerderbedarf", False, 9),
     # Eltern-Rollen
     (1, 547.1, 468.0, "eltern_ist_vater", True),
     (1, 547.1, 489.5, "eltern_ist_mutter", True),
@@ -133,27 +141,33 @@ CHECKBOX_FIELDS = [
     (1, 196.5, 767.0, "umschueler", True),
     (1, 348.7, 789.0, "umschulungsvertrag_vorhanden", True),
     (1, 524.6, 789.0, "kostenuebernahme_vorhanden", True),
-    # Seite 2: alle Kaestchen hier teilen sich die Zelle mit dem Label (wie
-    # Konfession/Foerderbedarf auf Seite 1) - Label fuellt die Zelle fast
-    # komplett, das Kreuz muss an den rechten Zellenrand statt in die Mitte
-    # (sonst landet es direkt auf dem Text "JA"/"VB01" etc.).
-    # Abschluss beendet (JA-Zelle 423.8-445.9, NEIN-Zelle 468.0-490.1)
-    (2, 443, 502.0, "mit_abschluss_beendet", True),
-    (2, 487, 502.0, "mit_abschluss_beendet", False),
-    # Art des Abschlusses (VB01-VB04, Zellen wie oben je 22.1pt breit)
-    (2, 399, 531.0, "art_abschluss_letzte_schule", "VB01"),
-    (2, 443, 531.0, "art_abschluss_letzte_schule", "VB02"),
-    (2, 487, 531.0, "art_abschluss_letzte_schule", "VB03"),
-    (2, 533, 531.0, "art_abschluss_letzte_schule", "VB04"),
-    # LRS
-    (2, 399, 591.5, "lrs", True),
-    (2, 443, 591.5, "lrs", False),
-    # ESA-Englisch (JA-Zelle 445.9-468.0, NEIN-Zelle 490.1-513.6)
-    (2, 465, 670.5, "esa_5_jahre_englisch", True),
-    (2, 511, 670.5, "esa_5_jahre_englisch", False),
-    (2, 465, 691.8, "esa_englisch_ausreichend", True),
-    (2, 511, 691.8, "esa_englisch_ausreichend", False),
-    # 2. Fremdsprache
-    (2, 465, 762.2, "zweite_fremdsprache", True),
-    (2, 511, 762.2, "zweite_fremdsprache", False),
+    # Seite 2: alle Kaestchen hier sind Zellen mit dem Label darin (JA/NEIN/
+    # VB0x). Koordinaten per pymupdf aus den Zell-Linien + Label-Positionen
+    # ermittelt. Layout-y = Label-Baseline(y1) + 1.5, damit das X auf der
+    # Textlinie sitzt (vorher lag es ~4pt zu hoch). x = rechte Luecke der
+    # Zelle bzw. rechter Rand, wo das Label die Zelle fuellt.
+    # Abschluss beendet: JA-Zelle x 424.8-446.9 ("JA" 431.7-439.9),
+    # NEIN-Zelle 468.9-491.0 ("NEIN" 470.1-488.4). Baseline y1 504.8.
+    (2, 440, 506.3, "mit_abschluss_beendet", True, 9),
+    (2, 484, 506.3, "mit_abschluss_beendet", False, 8),
+    # Art des Abschlusses: VB01 x 381.3-403.4, VB02 424.8-446.9,
+    # VB03 468.9-491.0, VB04 514.5-536.6. Label fuellt die Zelle fast ganz.
+    # Baseline y1 533.8.
+    (2, 396, 535.3, "art_abschluss_letzte_schule", "VB01", 8),
+    (2, 439, 535.3, "art_abschluss_letzte_schule", "VB02", 8),
+    (2, 483, 535.3, "art_abschluss_letzte_schule", "VB03", 8),
+    (2, 529, 535.3, "art_abschluss_letzte_schule", "VB04", 8),
+    # LRS: JA-Zelle x 381.3-403.4 ("JA" 388.3-396.5), NEIN-Zelle 424.8-446.9
+    # ("NEIN" 426.5-444.9). Baseline y1 594.1.
+    (2, 397, 595.6, "lrs", True, 9),
+    (2, 441, 595.6, "lrs", False, 8),
+    # ESA-Englisch / 2. Fremdsprache (Abschnitt 7): JA-Zelle x 446.9-468.9
+    # ("JA" 453.8-462.0), NEIN-Zelle 491.0-514.5 ("NEIN" 492.2-510.5).
+    (2, 463, 673.9, "esa_5_jahre_englisch", True, 9),
+    (2, 507, 673.9, "esa_5_jahre_englisch", False, 8),
+    (2, 463, 695.3, "esa_englisch_ausreichend", True, 9),
+    (2, 507, 695.3, "esa_englisch_ausreichend", False, 8),
+    # 2. Fremdsprache (Baseline y1 764.1)
+    (2, 463, 765.6, "zweite_fremdsprache", True, 9),
+    (2, 507, 765.6, "zweite_fremdsprache", False, 8),
 ]

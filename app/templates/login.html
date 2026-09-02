@@ -1,30 +1,45 @@
 {% extends "base.html" %}
 {% from "_form_macros.html" import render_field %}
-{% block title %}Anmelden{% endblock %}
+{% block title %}Anmelden · NOBO{% endblock %}
 {% block content %}
 <div class="row justify-content-center">
-  <div class="col-md-5">
-    <h1 class="h3 mb-4">Anmelden</h1>
-    <form method="post" novalidate>
-      {{ form.hidden_tag() }}
-      {{ render_field(form.username, autocomplete="username") }}
-      {{ render_field(form.password, autocomplete="current-password") }}
-      {{ form.submit(class="btn btn-primary w-100") }}
-    </form>
-  </div>
+  <div class="col-sm-9 col-md-6 col-lg-5 col-xl-4">
+    <div class="text-center mb-4">
+      {% if has_logo %}
+        <img src="{{ url_for('public.logo') }}" alt="Logo" height="52" class="mb-2">
+      {% endif %}
+      <div class="nobo-wordmark display-5">NOBO</div>
+      <div class="text-secondary small">Onboarding-Tool für die Schüleraufnahme</div>
+    </div>
 
-  {% if commits %}
-  <div class="col-md-4">
-    <h5>Letzte Änderungen</h5>
-    <ul class="list-unstyled small">
-      {% for c in commits %}
-        <li class="mb-2">
-          <span class="text-muted">{{ c.date }}</span> — {{ c.message }}
-        </li>
-      {% endfor %}
-    </ul>
-    <a href="https://github.com/sveroja/bbz-nok-onboarding" target="_blank" rel="noopener" class="text-muted small">Quellcode auf GitHub</a>
+    <div class="card shadow-sm">
+      <div class="card-body p-4">
+        <h1 class="h5 mb-3">Anmelden</h1>
+        <form method="post" novalidate>
+          {{ form.hidden_tag() }}
+          {{ render_field(form.username, autocomplete="username") }}
+          {{ render_field(form.password, autocomplete="current-password") }}
+          {{ form.submit(class="btn btn-primary w-100") }}
+        </form>
+      </div>
+    </div>
+
+    {% if commits %}
+    <details class="mt-3">
+      <summary class="text-secondary small py-1" style="cursor: pointer;">
+        Letzte Änderungen
+      </summary>
+      <ul class="list-unstyled small mt-2 mb-1">
+        {% for c in commits %}
+          <li class="mb-1">
+            <span class="text-muted">{{ c.date }}</span> — {{ c.message }}
+          </li>
+        {% endfor %}
+      </ul>
+      <a href="https://github.com/sveroja/bbz-nok-onboarding" target="_blank"
+         rel="noopener" class="text-muted small">Quellcode auf GitHub</a>
+    </details>
+    {% endif %}
   </div>
-  {% endif %}
 </div>
 {% endblock %}
