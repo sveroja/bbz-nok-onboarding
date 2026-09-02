@@ -17,6 +17,10 @@
 
 ## Später
 
+- **Anmeldungen zurücksetzen als Admin-Button**: `flask reset-registrations`
+  (löscht nur die `registration`-Tabelle) im Admin-Bereich als Button
+  abbilden – mit deutlicher Rückfrage/Bestätigung, nur für Dev/Test.
+  Aktuell nur per CLI (`docker compose exec app flask reset-registrations`).
 - **Ganze Klassen-Bearbeitung**: Name/Bildungsgänge einer bestehenden Klasse
   ändern (bisher nur Anlegen + Löschen; Klassenlehrer/erster Schultag über
   „Gemeinsame Daten").
