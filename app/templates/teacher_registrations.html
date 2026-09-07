@@ -101,17 +101,17 @@
       {{ action_form.hidden_tag() }}
       <input type="hidden" name="zug_id" value="{{ zug_filter or '' }}">
       <button type="submit" formaction="{{ url_for('teacher.export') }}"
-              class="btn btn-outline-primary btn-sm">CSV-Export</button>
+              class="btn btn-outline-primary btn-sm">Übersicht (CSV)</button>
       <button type="submit" formaction="{{ url_for('teacher.export_klassen_lk') }}"
-              class="btn btn-outline-primary btn-sm">Excel für Klassen-LK</button>
+              class="btn btn-outline-primary btn-sm">Übersicht (xlsx)</button>
       <button type="submit" formaction="{{ url_for('teacher.export_stammdatenblatt') }}"
               class="btn btn-outline-primary btn-sm">Stammdatenblätter (PDF)</button>
       <button type="submit" formaction="{{ url_for('teacher.export_namensschilder') }}"
               class="btn btn-outline-primary btn-sm">Namensschilder (PDF)</button>
       <button type="submit" formaction="{{ url_for('teacher.export_klassenbuch') }}"
-              class="btn btn-outline-primary btn-sm">WebUntis</button>
+              class="btn btn-outline-primary btn-sm">WebUntis (xlsx)</button>
       <button type="submit" formaction="{{ url_for('teacher.export_daz') }}"
-              class="btn btn-outline-primary btn-sm">DaZ-Statistik</button>
+              class="btn btn-outline-primary btn-sm">DaZ-Statistik (xlsx)</button>
     </form>
   </div>
 </div>

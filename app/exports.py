@@ -52,20 +52,24 @@ def build_klassen_lk_excel(regs) -> io.BytesIO:
         "Nachname", "Vorname", "Geburtsdatum", "Beruf", "Zug",
         "Straße", "PLZ", "Ort", "Telefon", "E-Mail",
         "Eltern/Ansprechpartner", "Eltern-Telefon",
+        "Betrieb", "Betrieb E-Mail", "Betrieb Ort",
         "Status", "PLZ-Prüfung", "Eingegangen am",
     ]
     ws.append(headers)
     for cell in ws[1]:
         cell.font = Font(bold=True)
 
+    klasse_cache = {}
     for r in regs:
+        eff_klasse = _effektive_klasse(r, klasse_cache)
         ws.append([
             r.nachname, r.vorname,
             r.geburtsdatum.strftime("%d.%m.%Y") if r.geburtsdatum else None,
-            beruf_namen.get(r.beruf, r.beruf), r.zug.name if r.zug else None,
+            beruf_namen.get(r.beruf, r.beruf), eff_klasse.name if eff_klasse else None,
             r.strasse, r.plz, r.ort, r.telefon, r.email,
             f"{r.eltern_vorname or ''} {r.eltern_nachname or ''}".strip() or None,
             r.eltern_telefon,
+            r.betrieb_name, r.betrieb_email, _combine(r.betrieb_plz, r.betrieb_ort),
             r.status, PLZ_OK_LABEL[r.plz_ok],
             r.created_at.strftime("%d.%m.%Y %H:%M") if r.created_at else None,
         ])

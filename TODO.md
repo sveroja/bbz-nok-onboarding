@@ -17,6 +17,13 @@
 
 ## Später
 
+- **Button „Zug-Vorschläge übernehmen" wieder rausnehmen?** Sobald die
+  Klassen/Züge verlässlich *vor* dem Sync angelegt werden, ordnet
+  `sync_submissions` alles direkt zu und es gibt keine offenen Vorschläge
+  mehr → Button (und `_zug_vorschlaege` / `zuege_uebernehmen`) kann weg.
+  Solange Klassen teils erst nach dem Sync entstehen, wird er noch
+  gebraucht. Nach einem kompletten Aufnahme-Durchlauf prüfen.
+
 - **Anmeldungen zurücksetzen als Admin-Button**: `flask reset-registrations`
   (löscht nur die `registration`-Tabelle) im Admin-Bereich als Button
   abbilden – mit deutlicher Rückfrage/Bestätigung, nur für Dev/Test.

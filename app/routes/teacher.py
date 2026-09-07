@@ -476,7 +476,7 @@ def delete_klasse(klasse_id):
 @login_required
 @role_required("teacher", "admin")
 def export():
-    regs, _aktive_klasse, _zug_filter = _current_filtered_regs()
+    regs, aktive_klasse, zug_filter = _current_filtered_regs()
     beruf_namen = {b.code: b.name for b in Bildungsgang.query.all() if b.code}
 
     output = io.StringIO()
@@ -484,22 +484,27 @@ def export():
     writer.writerow([
         "id", "erstellt_am", "vorname", "nachname", "beruf", "zug",
         "geburtsdatum", "strasse", "plz", "ort", "plz_ok", "status",
+        "betrieb", "betrieb_email", "betrieb_ort",
     ])
     for r in regs:
         plz_ok_str = {True: "ja", False: "nein", None: "unklar"}[r.plz_ok]
+        eff_klasse = exports._effektive_klasse(r)
         writer.writerow([
             r.id,
             r.created_at.strftime("%Y-%m-%d %H:%M") if r.created_at else "",
             r.vorname,
             r.nachname,
             beruf_namen.get(r.beruf, r.beruf),
-            r.zug.name if r.zug else "",
+            eff_klasse.name if eff_klasse else "",
             r.geburtsdatum.isoformat() if r.geburtsdatum else "",
             r.strasse,
             r.plz,
             r.ort,
             plz_ok_str,
             r.status,
+            r.betrieb_name or "",
+            r.betrieb_email or "",
+            f"{r.betrieb_plz or ''} {r.betrieb_ort or ''}".strip(),
         ])
 
     # utf-8-sig damit Excel die Umlaute korrekt erkennt
