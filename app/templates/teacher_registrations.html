@@ -22,18 +22,30 @@
   </div>
 </div>
 
-<form method="get" action="{{ url_for('teacher.registrations') }}" class="mb-3 d-flex align-items-center gap-2">
-  <label for="zug_id" class="form-label m-0">Zug anzeigen:</label>
-  <select id="zug_id" name="zug_id" class="form-select form-select-sm w-auto" onchange="this.form.submit()">
-    <option value="">alle</option>
-    {% for k in klassen %}
-      <option value="{{ k.id }}" {% if zug_filter == k.id %}selected{% endif %}>{{ k.name }}</option>
-    {% endfor %}
-  </select>
-  {% if zug_filter %}
-    <a href="{{ url_for('teacher.registrations') }}" class="btn btn-sm btn-link">Filter entfernen</a>
+<div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+  <form method="get" action="{{ url_for('teacher.registrations') }}" class="d-flex align-items-center gap-2 m-0">
+    <label for="zug_id" class="form-label m-0">Zug anzeigen:</label>
+    <select id="zug_id" name="zug_id" class="form-select form-select-sm w-auto" onchange="this.form.submit()">
+      <option value="">alle</option>
+      {% for k in klassen %}
+        <option value="{{ k.id }}" {% if zug_filter == k.id %}selected{% endif %}>{{ k.name }}</option>
+      {% endfor %}
+    </select>
+    {% if zug_filter %}
+      <a href="{{ url_for('teacher.registrations') }}" class="btn btn-sm btn-link">Filter entfernen</a>
+    {% endif %}
+  </form>
+
+  {% if offene_vorschlaege %}
+  <form method="post" action="{{ url_for('teacher.zuege_uebernehmen') }}" class="m-0">
+    {{ action_form.hidden_tag() }}
+    <button type="submit" class="btn btn-sm btn-primary"
+            title="Ordnet alle sichtbaren Anmeldungen mit Zug-Angabe im Aufnahmebogen automatisch zu">
+      {{ offene_vorschlaege }} {{ 'Zug-Vorschlag' if offene_vorschlaege == 1 else 'Zug-Vorschläge' }} aus dem Aufnahmebogen übernehmen
+    </button>
+  </form>
   {% endif %}
-</form>
+</div>
 
 <div class="card mb-3">
   <div class="card-body">
@@ -106,7 +118,7 @@
 
 {% if regs %}
 <div class="table-responsive">
-<table class="table table-striped align-middle">
+<table class="table table-striped table-sm align-middle small">
   <thead>
     <tr>
       <th>
@@ -114,20 +126,18 @@
         <span class="badge rounded-pill text-bg-secondary fw-normal align-middle"
               title="Anzahl angezeigter Anmeldungen">{{ regs|length }}</span>
       </th>
-      <th>Eingegangen</th>
-      <th>Name</th>
+      <th>Name<br><span class="text-muted fw-normal">Eingegangen · Geb.</span></th>
       <th>Beruf</th>
-      <th>Zug</th>
-      <th>Geb.</th>
+      <th style="min-width: 11rem;">Zug</th>
       <th>Wohnort</th>
-      <th>Betrieb Ort</th>
-      <th>PLZ-Prüfung</th>
+      <th>Betrieb</th>
+      <th>PLZ</th>
       <th>
         Status
         <span class="text-muted" style="cursor: help;"
               title="Kann z.B. genutzt werden, um den Bearbeitungsfortschritt zu markieren (u.a. Zeugnis geprüft).">ⓘ</span>
       </th>
-      <th class="text-end">Aktionen</th>
+      <th class="text-end">Aktion</th>
       <th class="text-center">
         Auswahl<br>
         <input type="checkbox" id="checkAll" class="form-check-input mt-1" checked
@@ -137,10 +147,20 @@
   </thead>
   <tbody>
   {% for r in regs %}
+    {% set vorschlag_id = zug_vorschlaege.get(r.id) %}
+    {% set ist_vorschlag = not r.zug_id and vorschlag_id %}
     <tr>
       <td>{{ loop.index }}</td>
       <td>
-        {{ r.created_at.strftime("%d.%m.%Y %H:%M") if r.created_at }}
+        <span class="fw-semibold">{{ r.vorname }} {{ r.nachname }}</span>
+        {% if r.id in duplicate_ids %}
+          <span class="badge bg-warning text-dark" title="Name+Geburtsdatum kommen mehrfach vor - evtl. Formular doppelt ausgefüllt">⚠ Dublette</span>
+        {% endif %}
+        <br>
+        <span class="text-muted">
+          {{ r.created_at.strftime("%d.%m.%y") if r.created_at }}
+          {%- if r.geburtsdatum %} · * {{ r.geburtsdatum.strftime("%d.%m.%Y") }}{% endif %}
+        </span>
         {% set rest = wp_rest_tage.get(r.id) %}
         {% if rest is not none %}
           <br>
@@ -149,16 +169,8 @@
           {% elif rest <= 3 %}
             <span class="badge bg-warning text-dark" title="WordPress löscht das Original automatisch">WP: noch {{ rest }} Tag{{ 'e' if rest != 1 }}</span>
           {% else %}
-            <span class="text-muted small" title="WordPress löscht das Original automatisch">WP: noch {{ rest }} Tage</span>
+            <span class="text-muted" title="WordPress löscht das Original automatisch">WP: noch {{ rest }} Tage</span>
           {% endif %}
-        {% endif %}
-      </td>
-      <td>
-        {{ r.vorname }} {{ r.nachname }}
-        {% if r.id in duplicate_ids %}
-          <span class="badge bg-warning text-dark" title="Name+Geburtsdatum kommen mehrfach vor - evtl. Formular doppelt ausgefüllt">
-            ⚠ evtl. Dublette
-          </span>
         {% endif %}
       </td>
       <td>{{ beruf_namen.get(r.beruf, r.beruf) }}</td>
@@ -169,27 +181,31 @@
           {% if r.zug and r.zug not in passende_klassen %}
             {% set passende_klassen = passende_klassen + [r.zug] %}
           {% endif %}
-          {% set vorschlag_id = zug_vorschlaege.get(r.id) %}
-          <select name="zug_id" class="form-select form-select-sm" onchange="this.form.submit()">
+          <select name="zug_id" onchange="this.form.submit()"
+                  class="form-select form-select-sm{% if ist_vorschlag %} border-warning{% endif %}"
+                  {% if ist_vorschlag %}title="Vorschlag aus dem Aufnahmebogen – noch nicht übernommen"{% endif %}>
             <option value="">– nicht zugeordnet –</option>
             {% for k in passende_klassen %}
-              <option value="{{ k.id }}" {% if r.zug_id == k.id or (not r.zug_id and vorschlag_id == k.id) %}selected{% endif %}>
-                {{ k.name }}{% if not r.zug_id and vorschlag_id == k.id %} (Vorschlag){% endif %}
+              <option value="{{ k.id }}" {% if r.zug_id == k.id or vorschlag_id == k.id %}selected{% endif %}>
+                {{ k.name }}{% if ist_vorschlag and vorschlag_id == k.id %} (Vorschlag){% endif %}
               </option>
             {% endfor %}
           </select>
         </form>
       </td>
-      <td>{{ r.geburtsdatum.strftime("%d.%m.%Y") if r.geburtsdatum }}</td>
-      <td>{{ r.plz }} {{ r.ort }}</td>
-      <td>{{ r.betrieb_plz }} {{ r.betrieb_ort }}</td>
+      <td class="text-nowrap">
+        {{ r.plz }}<br><span class="text-muted">{{ r.ort }}</span>
+      </td>
+      <td class="text-nowrap">
+        {{ r.betrieb_plz }}<br><span class="text-muted">{{ r.betrieb_ort }}</span>
+      </td>
       <td>
         {% if r.plz_ok is none %}
-          <span class="badge bg-warning text-dark">unklar</span>
+          <span class="badge bg-warning text-dark" title="PLZ-Prüfung">unklar</span>
         {% elif r.plz_ok %}
-          <span class="badge bg-success">passt</span>
+          <span class="badge bg-success" title="PLZ-Prüfung">passt</span>
         {% else %}
-          <span class="badge bg-danger">passt nicht</span>
+          <span class="badge bg-danger" title="PLZ-Prüfung">passt nicht</span>
         {% endif %}
       </td>
       <td>
@@ -199,23 +215,20 @@
           <span class="badge bg-info text-dark">neu</span>
         {% endif %}
       </td>
-      <td class="text-end">
-        <div class="d-flex gap-1 justify-content-end">
-          <a href="{{ url_for('teacher.edit_registration', reg_id=r.id) }}"
-             class="btn btn-sm btn-outline-secondary">bearbeiten</a>
-          {% if r.status != "checked" %}
-          <form method="post" action="{{ url_for('teacher.mark_checked', reg_id=r.id) }}">
-            {{ action_form.hidden_tag() }}
-            <button class="btn btn-sm btn-success" type="submit">geprüft</button>
-          </form>
-          {% endif %}
-          <form method="post"
-                action="{{ url_for('teacher.delete', reg_id=r.id) }}"
-                onsubmit="return confirm('Datensatz wirklich unwiderruflich löschen? Das kann nicht rückgängig gemacht werden.');">
-            {{ action_form.hidden_tag() }}
-            <button class="btn btn-sm btn-outline-danger" type="submit">löschen</button>
-          </form>
-        </div>
+      <td class="text-end text-nowrap">
+        <a href="{{ url_for('teacher.edit_registration', reg_id=r.id) }}"
+           class="btn btn-sm btn-outline-secondary" title="Bearbeiten">✎</a>
+        {% if r.status != "checked" %}
+        <form method="post" action="{{ url_for('teacher.mark_checked', reg_id=r.id) }}" class="d-inline">
+          {{ action_form.hidden_tag() }}
+          <button class="btn btn-sm btn-success" type="submit" title="Als geprüft markieren">✓</button>
+        </form>
+        {% endif %}
+        <form method="post" action="{{ url_for('teacher.delete', reg_id=r.id) }}" class="d-inline"
+              onsubmit="return confirm('Datensatz wirklich unwiderruflich löschen? Das kann nicht rückgängig gemacht werden.');">
+          {{ action_form.hidden_tag() }}
+          <button class="btn btn-sm btn-outline-danger" type="submit" title="Löschen">✕</button>
+        </form>
       </td>
       <td class="text-center">
         <input type="checkbox" name="reg_ids" value="{{ r.id }}" checked

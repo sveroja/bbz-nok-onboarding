@@ -374,6 +374,24 @@ def delete_remote_submission(external_id: str) -> None:
 # Sync
 # ---------------------------------------------------------------------------
 
+def zug_id_aus_aufnahmebogen(reg) -> Optional[int]:
+    """Zug (Klasse-ID) laut Aufnahmebogen (`zug_bool` + `zug_value` = a/b/c/…),
+    wenn GENAU EINE Klasse mit passendem Buchstaben-Suffix den Bildungsgang
+    abdeckt. Sonst None. Damit werden Zuege beim Sync direkt zugeordnet und
+    nicht nur vorgeschlagen.
+    """
+    if reg.zug_id or not reg.zug_bool or not reg.zug_value or not reg.beruf:
+        return None
+    from .models import Klasse, KlasseBildungsgang  # lokal, zirkulaer sonst
+    suffix = reg.zug_value.strip().lower()
+    treffer = [
+        k for k in Klasse.query.join(KlasseBildungsgang)
+        .filter(KlasseBildungsgang.bildungsgang == reg.beruf).all()
+        if k.name.lower().endswith(suffix)
+    ]
+    return treffer[0].id if len(treffer) == 1 else None
+
+
 def sync_submissions(per_page: int = 100, max_pages: int = 100) -> dict:
     """Holt alle Submissions vom WP, importiert noch unbekannte.
 
@@ -434,6 +452,9 @@ def sync_submissions(per_page: int = 100, max_pages: int = 100) -> dict:
 
             try:
                 reg = submission_to_registration(sub)
+                # Zug laut Aufnahmebogen direkt zuordnen (nicht nur vorschlagen),
+                # wenn eindeutig - erspart der LK das manuelle Nachziehen.
+                reg.zug_id = zug_id_aus_aufnahmebogen(reg)
                 # PLZ-Check (best effort): je Bildungsgang die passenden
                 # Kreise (Bezirksfachklassen), sonst Rueckfall auf die
                 # globale PlzRule.

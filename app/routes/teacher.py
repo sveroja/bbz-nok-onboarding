@@ -185,6 +185,10 @@ def registrations():
             if r.external_id and r.created_at:
                 wp_rest_tage[r.id] = retention - (heute - r.created_at.date()).days
 
+    offene_vorschlaege = sum(
+        1 for r in regs if not r.zug_id and zug_vorschlaege.get(r.id)
+    )
+
     # ActionForm einmal für CSRF-Token in jedem Zeilen-Button
     action_form = ActionForm()
     return render_template(
@@ -195,6 +199,7 @@ def registrations():
         beruf_to_klassen=beruf_to_klassen,
         beruf_namen=beruf_namen,
         zug_vorschlaege=zug_vorschlaege,
+        offene_vorschlaege=offene_vorschlaege,
         zug_filter=zug_filter,
         aktive_klasse=aktive_klasse,
         gemeinsame_klasse=_gemeinsame_klasse(aktive_klasse, zug_filter),
@@ -231,6 +236,39 @@ def assign_zug(reg_id):
         flash("Zug-Zuordnung entfernt.", "success")
 
     db.session.commit()
+    return redirect(url_for("teacher.registrations"))
+
+
+@bp.route("/registrations/zuege-uebernehmen", methods=["POST"])
+@login_required
+@role_required("teacher", "admin")
+def zuege_uebernehmen():
+    """Ordnet alle aktuell sichtbaren Anmeldungen, für die der Aufnahmebogen
+    einen Zug nennt (zug_bool/zug_value) und noch keiner gesetzt ist, in
+    einem Rutsch dem vorgeschlagenen Zug zu.
+    """
+    form = ActionForm()
+    if not form.validate_on_submit():
+        flash("Ungültige Anfrage (CSRF).", "error")
+        return redirect(url_for("teacher.registrations"))
+
+    regs, _aktive_klasse, _zug_filter = _current_filtered_regs()
+    klassen = [
+        k for k in Klasse.query.order_by(Klasse.name).all() if _ist_unterklasse(k)
+    ]
+    vorschlaege = _zug_vorschlaege(regs, _beruf_to_klassen_map(klassen), klassen)
+
+    n = 0
+    for r in regs:
+        vid = vorschlaege.get(r.id)
+        if vid and not r.zug_id:
+            r.zug_id = vid
+            n += 1
+    db.session.commit()
+    if n:
+        flash(f"{n} Anmeldung(en) laut Aufnahmebogen einem Zug zugeordnet.", "success")
+    else:
+        flash("Keine offenen Zug-Vorschläge.", "info")
     return redirect(url_for("teacher.registrations"))
 
 
