@@ -1,5 +1,20 @@
 # TODO
 
+## Nächster Bulk-Commit (Kleinkram)
+
+- **Klassen verwalten – Feld „Zuständige Lehrkraft"**: Label-Zusatz
+  „(optional, nur zur Anzeige)" raus, stattdessen „(= Klassenlehrer/in im
+  Stammdatenblatt)". (`app/forms.py`, `KlasseForm.zustaendige_lehrkraft`)
+- **Klassen verwalten – Spalte „Bildungsgänge"** bei den bestehenden
+  Klassen zeigt die Codes/Keywords statt der Klarnamen. Codes →
+  `Bildungsgang.name` mappen. (`teacher_klassen.html` bzw. im View eine
+  `code→name`-Map mitgeben, wie in anderen Templates.)
+- **Klassen verwalten – „Bearbeiten"-Button je bestehende Klasse**: Name +
+  zugeordnete Bildungsgänge nachträglich ändern (bisher nur Anlegen +
+  Löschen). Route `POST /teacher/klassen/<id>/bearbeiten` + Formular
+  (Checkbox-Liste der Bildungsgänge, vorbelegt), `KlasseBildungsgang`-
+  Zeilen entsprechend anlegen/löschen.
+
 ## Offen / vom Nutzer gegenzuprüfen
 
 - **Logo für hellen Hintergrund**: Kopfleiste ist jetzt weiß, das aktuelle
@@ -28,9 +43,6 @@
   (löscht nur die `registration`-Tabelle) im Admin-Bereich als Button
   abbilden – mit deutlicher Rückfrage/Bestätigung, nur für Dev/Test.
   Aktuell nur per CLI (`docker compose exec app flask reset-registrations`).
-- **Ganze Klassen-Bearbeitung**: Name/Bildungsgänge einer bestehenden Klasse
-  ändern (bisher nur Anlegen + Löschen; Klassenlehrer/erster Schultag über
-  „Gemeinsame Daten").
 - **`foerderbedarf_art`**: kommt per Sync rein, wird aber nur als Fallback
   gezeichnet (wenn `foerderschwerpunkt` leer ist). Klären, ob beide Felder
   wirklich getrennt gebraucht werden.
