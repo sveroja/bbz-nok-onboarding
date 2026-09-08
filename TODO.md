@@ -14,6 +14,11 @@
   Löschen). Route `POST /teacher/klassen/<id>/bearbeiten` + Formular
   (Checkbox-Liste der Bildungsgänge, vorbelegt), `KlasseBildungsgang`-
   Zeilen entsprechend anlegen/löschen.
+- **Kopfzeile der Anmeldungsübersicht**: „Klasse: … / Klasse wechseln" ist
+  zu unauffällig (grauer Fließtext + Link). Als Button gestalten, im
+  gleichen Layout wie rechts („Jetzt synchronisieren" / „Klassen
+  verwalten") – z.B. ein `btn-outline-secondary btn-sm` „Bereich: ELI026 ▾"
+  links neben den beiden anderen Buttons.
 
 ## Offen / vom Nutzer gegenzuprüfen
 
