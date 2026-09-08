@@ -175,12 +175,14 @@
       </td>
       <td>{{ beruf_namen.get(r.beruf, r.beruf) }}</td>
       <td>
+        {# Nur Zuege des eigenen Bildungsgangs (kein Rueckfall auf alle). #}
+        {% set passende_klassen = beruf_to_klassen.get(r.beruf) or [] %}
+        {% if r.zug and r.zug not in passende_klassen %}
+          {% set passende_klassen = passende_klassen + [r.zug] %}
+        {% endif %}
+        {% if passende_klassen %}
         <form method="post" action="{{ url_for('teacher.assign_zug', reg_id=r.id) }}">
           {{ action_form.hidden_tag() }}
-          {% set passende_klassen = beruf_to_klassen.get(r.beruf) or klassen %}
-          {% if r.zug and r.zug not in passende_klassen %}
-            {% set passende_klassen = passende_klassen + [r.zug] %}
-          {% endif %}
           <select name="zug_id" onchange="this.form.submit()"
                   class="form-select form-select-sm{% if ist_vorschlag %} border-warning{% endif %}"
                   {% if ist_vorschlag %}title="Vorschlag aus dem Aufnahmebogen – noch nicht übernommen"{% endif %}>
@@ -192,6 +194,9 @@
             {% endfor %}
           </select>
         </form>
+        {% else %}
+          <span class="text-muted" title="Für diesen Bildungsgang sind keine Züge angelegt">– kein Zug –</span>
+        {% endif %}
       </td>
       <td class="text-nowrap">
         {{ r.plz }}<br><span class="text-muted">{{ r.ort }}</span>

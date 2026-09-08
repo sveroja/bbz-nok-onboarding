@@ -41,21 +41,21 @@ def _beruf_to_klassen_map(klassen):
     return mapping
 
 
-def _zug_vorschlaege(regs, beruf_to_klassen, klassen):
+def _zug_vorschlaege(regs, beruf_to_klassen):
     """{Registration.id: Klasse.id} - Vorschlag fuer die Zug-Vorauswahl, wenn
     die LK vor Ort laut Aufnahmebogen (zug_bool/zug_value) schon einen Zug
     (a-d) vergeben hat. Nur ein Vorschlag fuers Dropdown, setzt reg.zug_id
     nicht - die tatsaechliche Zuordnung bleibt eine manuelle LK-Aktion.
-    Match ueber die dokumentierte Namenskonvention "...a"/"...b"/... (siehe
-    README, Abschnitt Klassen/Zuege verwalten).
+    Match ueber die Namenskonvention "...a"/"...b"/... und NUR unter den
+    Zuegen des eigenen Bildungsgangs (kein Rueckfall auf alle Klassen).
     """
     vorschlaege = {}
     for r in regs:
         if r.zug_id or not r.zug_bool or not r.zug_value:
             continue
-        passende_klassen = beruf_to_klassen.get(r.beruf) or klassen
-        for k in passende_klassen:
-            if k.name.lower().endswith(r.zug_value.strip().lower()):
+        suffix = r.zug_value.strip().lower()
+        for k in beruf_to_klassen.get(r.beruf) or []:
+            if k.name.lower().endswith(suffix):
                 vorschlaege[r.id] = k.id
                 break
     return vorschlaege
@@ -173,7 +173,7 @@ def registrations():
     beruf_to_klassen = _beruf_to_klassen_map(klassen)
     duplicate_ids = _find_duplicate_ids()
     beruf_namen = {b.code: b.name for b in Bildungsgang.query.all() if b.code}
-    zug_vorschlaege = _zug_vorschlaege(regs, beruf_to_klassen, klassen)
+    zug_vorschlaege = _zug_vorschlaege(regs, beruf_to_klassen)
 
     # Wie lange existiert das Original noch bei Fluent Forms? (Frist aus der
     # .env, da nicht per API abrufbar.) Nur fuer synchronisierte Anmeldungen.
@@ -256,7 +256,7 @@ def zuege_uebernehmen():
     klassen = [
         k for k in Klasse.query.order_by(Klasse.name).all() if _ist_unterklasse(k)
     ]
-    vorschlaege = _zug_vorschlaege(regs, _beruf_to_klassen_map(klassen), klassen)
+    vorschlaege = _zug_vorschlaege(regs, _beruf_to_klassen_map(klassen))
 
     n = 0
     for r in regs:
