@@ -19,6 +19,25 @@
   gleichen Layout wie rechts („Jetzt synchronisieren" / „Klassen
   verwalten") – z.B. ein `btn-outline-secondary btn-sm` „Bereich: ELI026 ▾"
   links neben den beiden anderen Buttons.
+- **Automatischer Sync per Host-Cron** (einmal täglich reicht fürs Erste,
+  deutlich innerhalb der 31-Tage-WP-Löschfrist). Host-Cron statt Cron im
+  Container (siehe Chat-Begründung: kein Image-Umbau nötig, Single-Host-
+  Setup). Umsetzung:
+  - Crontab-Zeile auf dem Prod-Server (Nutzer trägt sie ein, ich kann sie
+    nicht selbst einrichten — kein Zugriff auf den Server):
+    ```
+    0 4 * * * cd /pfad/zum/repo && docker compose exec -T app flask --app run.py sync-fluentform >> /var/log/nobo-sync.log 2>&1
+    ```
+    (`-T` = kein TTY, nötig für Cron; Uhrzeit/Pfad an die echte Installation
+    anpassen.)
+  - README-Abschnitt „Automatischer Sync" ergänzen: obiger Crontab-Eintrag
+    + Hinweis, dass der Sync alle WP-Submissions neu abruft (kein
+    inkrementeller Abruf) und external_id-Dedup greift, + Warnung, dass
+    ohne Sync innerhalb der WP-Löschfrist Anmeldungen unwiderruflich
+    verloren gehen können.
+  - Gleichzeitig dran denken: `.env` auf Prod um
+    `FLUENTFORM_RETENTION_DAYS=31` ergänzen (aktuell nicht gesetzt),
+    damit die „WP: noch X Tage"-Anzeige in der Übersicht stimmt.
 
 ## Offen / vom Nutzer gegenzuprüfen
 
