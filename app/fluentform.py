@@ -396,7 +396,13 @@ def sync_submissions(per_page: int = 100, max_pages: int = 100) -> dict:
     """Holt alle Submissions vom WP, importiert noch unbekannte.
 
     Rückgabe:
-        {"fetched": int, "created": int, "skipped": int, "errors": int}
+        {"fetched": int, "created": int, "skipped": int, "errors": int,
+         "umschueler": int}
+
+    "umschueler" zaehlt unter den NEU angelegten (nicht den uebersprungenen)
+    die mit `umschueler == True` - fuer den Hinweis im Sync-Ergebnis, damit
+    die LK nicht uebersieht, dass z.B. die "Erklaerung Umschueler" noch
+    exportiert/unterschrieben werden muss.
 
     Dubletten werden über `external_id` (= submission["id"]) erkannt.
     Pagination wird automatisch durchlaufen, bis keine weitere Seite
@@ -418,7 +424,7 @@ def sync_submissions(per_page: int = 100, max_pages: int = 100) -> dict:
         password=cfg["FLUENTFORM_PASSWORD"],
     )
 
-    result = {"fetched": 0, "created": 0, "skipped": 0, "errors": 0}
+    result = {"fetched": 0, "created": 0, "skipped": 0, "errors": 0, "umschueler": 0}
     rule = PlzRule.query.filter_by(active=True).first()
     form_id = cfg["FLUENTFORM_FORM_ID"]
 
@@ -477,6 +483,8 @@ def sync_submissions(per_page: int = 100, max_pages: int = 100) -> dict:
                 db.session.add(reg)
                 db.session.commit()
                 result["created"] += 1
+                if reg.umschueler:
+                    result["umschueler"] += 1
             except Exception:
                 db.session.rollback()
                 result["errors"] += 1

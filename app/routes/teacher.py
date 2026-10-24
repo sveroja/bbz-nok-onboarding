@@ -679,4 +679,12 @@ def sync():
 
     flash("Sync: " + ", ".join(msg_parts) + ".",
           "warning" if result["errors"] else "success")
+    if result["umschueler"]:
+        anzahl = result["umschueler"]
+        bezeichnung = "Umschüler/in" if anzahl == 1 else "Umschüler/innen"
+        flash(
+            f"⚠ Darunter {anzahl} {bezeichnung} – „Erklärung Umschüler“ "
+            "nicht vergessen!",
+            "warning",
+        )
     return redirect(url_for("teacher.registrations"))
