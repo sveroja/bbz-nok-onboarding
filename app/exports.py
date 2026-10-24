@@ -511,3 +511,78 @@ def build_namensschilder_pdf(regs) -> io.BytesIO:
     c.save()
     buf.seek(0)
     return buf
+
+
+# ---------------------------------------------------------------------------
+# Erklaerung Umschueler (admin-hochgeladenes PDF MIT echtem AcroForm -
+# Feldwerte statt Koordinaten-Overlay)
+# ---------------------------------------------------------------------------
+
+def _strasse_plz_ort(strasse, plz, ort) -> Optional[str]:
+    teile = [t for t in (strasse, _combine(plz, ort)) if t]
+    return ", ".join(teile) or None
+
+
+def build_umschueler_erklaerung_pdf(regs) -> io.BytesIO:
+    """Ein ausgefuelltes Exemplar der "Erklaerung fuer die Uebernahme der
+    Beitraege fuer Umschueler/-innen" je Umschueler (r.umschueler == True)
+    in `regs`. Die Vorlage hat ein echtes AcroForm (18 Felder) - daher
+    Feldwerte statt Koordinaten-Overlay wie beim Stammdatenblatt.
+
+    Nicht aus unseren Daten ableitbare Felder bleiben leer (von Hand zu
+    ergaenzen): "ausscheidender Soldat"/BFD-Foerderung (Ja/Nein-Kaestchen),
+    Traeger der Massnahme + dessen Anschrift, Massnahmennummer,
+    Dienst-/Firmenstempel und Ort/Datum/Unterschrift.
+
+    Wirft FileNotFoundError, wenn keine Vorlage hochgeladen wurde, und
+    ValueError, wenn `regs` keine Umschueler/-innen enthaelt.
+    """
+    path = vorlagen.vorlage_path("umschueler_erklaerung")
+    if not path.exists():
+        raise FileNotFoundError(
+            "Vorlage 'Erklärung Umschüler' wurde noch nicht hochgeladen."
+        )
+
+    umschueler_regs = [r for r in regs if r.umschueler]
+    if not umschueler_regs:
+        raise ValueError("Keine Umschüler/-innen in der Auswahl.")
+
+    from .models import Bildungsgang  # lokaler Import, zirkulaer sonst
+    beruf_namen = {b.code: b.name for b in Bildungsgang.query.all() if b.code}
+
+    writer = PdfWriter()
+    for r in umschueler_regs:
+        # Frischer Reader je Registrierung (siehe Stammdatenblatt-Kommentar
+        # weiter oben): sonst teilen sich mehrere Anmeldungen dieselben
+        # geklonten Formularfeld-Objekte.
+        reader = PdfReader(str(path))
+        writer.append(reader)
+        page = writer.pages[-1]
+
+        beruf_text = beruf_namen.get(r.beruf, r.beruf)
+        if r.fachrichtung:
+            beruf_text = _combine(beruf_text, f"({r.fachrichtung})")
+
+        werte = {
+            "Name Vorname": _combine(r.nachname and f"{r.nachname},", r.vorname),
+            "Geburtsdatum": _fmt_date(r.geburtsdatum),
+            "Straße PLZ Wohnort": _strasse_plz_ort(r.strasse, r.plz, r.ort),
+            "Umschulungsbetrieb": r.betrieb_name,
+            "Straße PLZ Ort": _strasse_plz_ort(
+                r.betrieb_strasse, r.betrieb_plz, r.betrieb_ort
+            ),
+            "Telefonische Erreichbarkeit über": r.betrieb_telefon,
+            "Umschulungsberuf": beruf_text,
+            "Datum Umschulungsbeginn": _fmt_date(r.ausbildung_von),
+            "Datum Umschulungsende": _fmt_date(r.ausbildung_bis),
+        }
+        werte = {k: v for k, v in werte.items() if v}
+        writer.update_page_form_field_values(page, werte)
+
+    if writer.get_fields():
+        writer.set_need_appearances_writer(True)
+
+    buf = io.BytesIO()
+    writer.write(buf)
+    buf.seek(0)
+    return buf

@@ -108,6 +108,9 @@
               class="btn btn-outline-primary btn-sm">Stammdatenblätter (PDF)</button>
       <button type="submit" formaction="{{ url_for('teacher.export_namensschilder') }}"
               class="btn btn-outline-primary btn-sm">Namensschilder (PDF)</button>
+      <button type="submit" formaction="{{ url_for('teacher.export_umschueler_erklaerung') }}"
+              class="btn btn-outline-primary btn-sm"
+              title="Ein Exemplar je Umschüler/in in der Auswahl">Erklärung Umschüler (PDF)</button>
       <button type="submit" formaction="{{ url_for('teacher.export_klassenbuch') }}"
               class="btn btn-outline-primary btn-sm">WebUntis (xlsx)</button>
       <button type="submit" formaction="{{ url_for('teacher.export_daz') }}"
@@ -218,6 +221,9 @@
           <span class="badge bg-secondary">geprüft</span>
         {% else %}
           <span class="badge bg-info text-dark">neu</span>
+        {% endif %}
+        {% if r.umschueler %}
+          <br><span class="badge bg-dark" title="Umschüler/in – Sektion 5 im Aufnahmebogen">Umschüler</span>
         {% endif %}
       </td>
       <td class="text-end text-nowrap">

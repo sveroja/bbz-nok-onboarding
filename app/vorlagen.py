@@ -24,6 +24,11 @@ VORLAGEN = {
         "label": "DaZ-Statistik (xlsx)",
         "ext": "xlsx",
     },
+    "umschueler_erklaerung": {
+        "filename": "umschueler_erklaerung.pdf",
+        "label": "Erklärung Umschüler (PDF)",
+        "ext": "pdf",
+    },
 }
 
 

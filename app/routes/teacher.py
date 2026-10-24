@@ -604,6 +604,29 @@ def export_stammdatenblatt():
     )
 
 
+@bp.route("/export/umschueler-erklaerung", methods=["GET", "POST"])
+@login_required
+@role_required("teacher", "admin")
+def export_umschueler_erklaerung():
+    """Vorausgefuellte "Erklärung Umschüler" (ein Exemplar je Umschüler/in
+    in der aktuellen Auswahl - andere Anmeldungen werden uebersprungen).
+    """
+    regs, _aktive_klasse, _zug_filter = _current_filtered_regs()
+    try:
+        buf = exports.build_umschueler_erklaerung_pdf(regs)
+    except FileNotFoundError as exc:
+        flash(f"{exc} Siehe Admin → Export-Vorlagen.", "error")
+        return redirect(url_for("teacher.registrations"))
+    except ValueError as exc:
+        flash(str(exc), "error")
+        return redirect(url_for("teacher.registrations"))
+
+    return send_file(
+        buf, as_attachment=True, download_name="erklaerung-umschueler.pdf",
+        mimetype="application/pdf",
+    )
+
+
 @bp.route("/export/namensschilder", methods=["GET", "POST"])
 @login_required
 @role_required("teacher", "admin")
