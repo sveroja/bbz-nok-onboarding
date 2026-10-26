@@ -47,9 +47,16 @@
 - **WebUntis-Export**: echten Export einmal in Excel öffnen und Farben/
   Streifen/Datumsformat gegenprüfen (Fix: Tabellen-Range auf alle Zeilen +
   Schrift-Reset + `DD.MM.YYYY` erzwungen).
-- **Namensschild**: jetzt 4 Spalten/3 Faltmarken (Box statt Zwei-Seiten-Tent),
-  Logo+Name auf allen 4 Seiten identisch – einmal ausdrucken und falten,
-  prüfen ob Box-Maße/Lesbarkeit so passen.
+- **Namensschild**: jetzt 1 Spalte/4 Zeilen (3 Faltmarken, auf der langen
+  Seite gefaltet). Zeile 1+4 bleiben leer (Standfüße, liegen gefaltet flach
+  auf dem Tisch), Zeile 2 = Vorname+Logo (180° gedreht gedruckt), Zeile 3 =
+  Nachname+Logo (normal) – das sind die beiden schrägen Flächen des
+  Aufstellers. Je nach Lehrkraft (du/sie) wird das fertig gefaltete Schild
+  einfach um 180° (Hochachse) gedreht, dann zeigt wahlweise Vor- oder
+  Nachname nach vorn. Visuell per pymupdf-Simulation geprüft (Flip-Logik
+  stimmt), aber einmal real ausdrucken/falten und gegenprüfen, ob die
+  Standfüße stabil genug stehen und Logo-Größe (sobald ein Logo hochgeladen
+  ist) passt.
 - **NOBO-Untertitel** „Onboarding-Tool für die Schüleraufnahme" — Wortlaut
   ändern, falls gewünscht (Start- + Login-Seite).
 - **`ausbildung_bis` zum Pflichtfeld** im WP-Formular machen (dann ist der
