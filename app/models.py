@@ -377,6 +377,10 @@ class Bildungsgang(db.Model):
     code = db.Column(db.String(100), unique=True, nullable=True)
     abteilung_id = db.Column(db.Integer, db.ForeignKey("abteilung.id"), nullable=True)
     abteilung = db.relationship("Abteilung", backref="bildungsgang")
+    # Landesberufsschule: SuS aus ganz Schleswig-Holstein duerfen diesen
+    # Bildungsgang besuchen (keine Kreis-Beschraenkung). Hat Vorrang vor
+    # BildungsgangKreis - siehe plz.check_kreis_fuer_bildungsgang.
+    landesweit = db.Column(db.Boolean, default=False, nullable=False)
 
     def __repr__(self) -> str:
         return f"<Bildungsgang {self.name}>"

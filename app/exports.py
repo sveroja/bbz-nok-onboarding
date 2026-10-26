@@ -411,13 +411,15 @@ def build_stammdatenblatt_pdf(regs) -> io.BytesIO:
 
 
 # ---------------------------------------------------------------------------
-# Namensschilder / Tischkarten (A4, vertikale Faltmarke - zum Aufstellen)
+# Namensschilder / Tischkarten (A4, auf der kurzen Seite gefaltet - 3
+# Faltmarken / 4 gleich breite Spalten, zur stehenden Box gefaltet)
 # ---------------------------------------------------------------------------
 
-_NS_MARGIN = 34           # Rand der Blatthaelfte (pt)
-_NS_LOGO_MAX_H = 60       # max. Logo-Hoehe (pt)
+_NS_PANELS = 4            # Spalten = Faltmarken (3) + 1
+_NS_MARGIN = 34           # Rand je Spalte (pt), wird fuer schmalere Spalten gestaucht
+_NS_LOGO_MAX_H = 60       # max. Logo-Hoehe (pt), ebenfalls gestaucht
 _NS_NAME_START = 54       # Start-Schriftgroesse fuer den Namen
-_NS_NAME_MIN = 14
+_NS_NAME_MIN = 11
 
 
 def _ns_fit_size(lines, max_width) -> int:
@@ -430,28 +432,33 @@ def _ns_fit_size(lines, max_width) -> int:
     return size
 
 
-def _ns_draw_rechte_haelfte(c, logo, vorname, nachname):
-    """Rechte Blatthaelfte, Inhalt um 90 Grad gegen den Uhrzeigersinn
-    gedreht: Schullogo oben links, darunter der Name fett - so steht es
-    richtig, wenn das an der senkrechten Faltmarke gefaltete Blatt
-    aufgestellt wird. Linke Haelfte bleibt leer.
+def _ns_draw_panel(c, x0, panel_w, logo, vorname, nachname):
+    """Eine der `_NS_PANELS` gleich breiten Spalten (volle Blatthoehe),
+    Inhalt um 90 Grad gegen den Uhrzeigersinn gedreht: Schullogo oben
+    links, darunter der Name fett - so steht es richtig, wenn der an den
+    Faltmarken gefaltete Streifen zu einer Box aufgestellt wird. Alle
+    Spalten bekommen denselben Inhalt, damit das Schild von jeder Seite
+    der Box lesbar ist.
     """
-    half_w = PAGE_WIDTH / 2
     c.saveState()
-    # Ursprung in die Mitte der rechten Haelfte, dann 90 Grad CCW.
-    c.translate(half_w + half_w / 2, PAGE_HEIGHT / 2)
+    c.translate(x0 + panel_w / 2, PAGE_HEIGHT / 2)
     c.rotate(90)
     # Lokales Koordinatensystem der aufgestellten Schild-Flaeche:
-    #   lokale x-Achse  = Leserichtung  (Blatt-Hoehe,  842 pt)
-    #   lokale y-Achse  = "nach oben"   (halbe Blattbreite, ~298 pt)
-    face_w, face_h = PAGE_HEIGHT, half_w
-    left = -face_w / 2 + _NS_MARGIN
-    top = face_h / 2 - _NS_MARGIN
+    #   lokale x-Achse = Leserichtung (Blatt-Hoehe, 842pt - unveraendert)
+    #   lokale y-Achse = "nach oben"  (Spaltenbreite, bei 4 Spalten ~149pt)
+    face_w, face_h = PAGE_HEIGHT, panel_w
+    # Rand/Logo-Groesse an die (bei mehr Spalten schmalere) Flaechenhoehe
+    # anpassen, statt feste pt-Werte zu nehmen, die bei 4 Spalten nicht mehr
+    # reinpassen wuerden.
+    margin = min(_NS_MARGIN, face_h * 0.11)
+    logo_cap = min(_NS_LOGO_MAX_H, face_h * 0.28)
+    left = -face_w / 2 + margin
+    top = face_h / 2 - margin
 
     logo_h = 0.0
     if logo is not None:
         iw, ih = logo.getSize()
-        h, w = _NS_LOGO_MAX_H, _NS_LOGO_MAX_H * iw / ih
+        h, w = logo_cap, logo_cap * iw / ih
         max_w = face_w * 0.4
         if w > max_w:
             w, h = max_w, max_w * ih / iw
@@ -460,11 +467,16 @@ def _ns_draw_rechte_haelfte(c, logo, vorname, nachname):
         logo_h = h + 16
 
     lines = [t for t in (vorname, nachname) if t] or ["—"]
-    size = _ns_fit_size(lines, face_w - 2 * _NS_MARGIN)
-    lh = size * 1.24
-    # Name-Block unter dem Logo, im restlichen Platz vertikal zentriert.
     bereich_oben = top - logo_h
-    bereich_unten = -face_h / 2 + _NS_MARGIN
+    bereich_unten = -face_h / 2 + margin
+    verfuegbare_hoehe = max(bereich_oben - bereich_unten, _NS_NAME_MIN)
+
+    size = _ns_fit_size(lines, face_w - 2 * margin)
+    lh = size * 1.24
+    while lh * len(lines) > verfuegbare_hoehe and size > _NS_NAME_MIN:
+        size -= 1
+        lh = size * 1.24
+
     block_h = lh * len(lines)
     y = (bereich_oben + bereich_unten) / 2 + block_h / 2 - size
     c.setFont("Helvetica-Bold", size)
@@ -476,36 +488,41 @@ def _ns_draw_rechte_haelfte(c, logo, vorname, nachname):
 
 
 def build_namensschilder_pdf(regs) -> io.BytesIO:
-    """Ein A4-Blatt (Hochformat) je Anmeldung mit senkrechter Faltmarke in
-    der Mitte. Der Inhalt (Schullogo + Name, um 90 Grad gegen den
-    Uhrzeigersinn gedreht) steht auf der rechten Haelfte; die linke bleibt
-    leer. Gefaltet und aufgestellt ergibt das ein Namensschild.
+    """Ein A4-Blatt (Hochformat) je Anmeldung, auf der kurzen Seite in
+    `_NS_PANELS` (4) gleich breite Spalten gefaltet - 3 Faltmarken. Jede
+    Spalte traegt Schullogo + Name (um 90 Grad gegen den Uhrzeigersinn
+    gedreht), damit beim Aufstellen zur Box jede Seite lesbar ist.
     """
-    half_w = PAGE_WIDTH / 2
+    panel_w = PAGE_WIDTH / _NS_PANELS
     logo = ImageReader(str(branding.logo_path())) if branding.has_logo() else None
 
     buf = io.BytesIO()
     c = canvas.Canvas(buf, pagesize=(PAGE_WIDTH, PAGE_HEIGHT))
     for r in regs:
-        # Faltmarke: gestrichelt ueber die volle Hoehe + Ticks an den Kanten.
-        c.saveState()
-        c.setStrokeColorRGB(0.6, 0.6, 0.6)
-        c.setLineWidth(0.7)
-        c.setDash(3, 3)
-        c.line(half_w, 18, half_w, PAGE_HEIGHT - 18)
-        c.setDash()
-        c.line(half_w, 0, half_w, 16)
-        c.line(half_w, PAGE_HEIGHT, half_w, PAGE_HEIGHT - 16)
-        c.setFont("Helvetica", 6)
-        c.setFillColorRGB(0.55, 0.55, 0.55)
-        c.translate(half_w - 3, 24)
-        c.rotate(90)
-        c.drawString(0, 0, "hier falten")
-        c.restoreState()
+        vorname = (r.vorname or "").strip()
+        nachname = (r.nachname or "").strip()
 
-        _ns_draw_rechte_haelfte(
-            c, logo, (r.vorname or "").strip(), (r.nachname or "").strip()
-        )
+        # Faltmarken: gestrichelt ueber die volle Hoehe + Ticks an den Kanten,
+        # an jeder der 3 Spaltengrenzen.
+        for i in range(1, _NS_PANELS):
+            x = panel_w * i
+            c.saveState()
+            c.setStrokeColorRGB(0.6, 0.6, 0.6)
+            c.setLineWidth(0.7)
+            c.setDash(3, 3)
+            c.line(x, 18, x, PAGE_HEIGHT - 18)
+            c.setDash()
+            c.line(x, 0, x, 16)
+            c.line(x, PAGE_HEIGHT, x, PAGE_HEIGHT - 16)
+            c.setFont("Helvetica", 6)
+            c.setFillColorRGB(0.55, 0.55, 0.55)
+            c.translate(x - 3, 24)
+            c.rotate(90)
+            c.drawString(0, 0, "hier falten")
+            c.restoreState()
+
+        for i in range(_NS_PANELS):
+            _ns_draw_panel(c, panel_w * i, panel_w, logo, vorname, nachname)
         c.showPage()
 
     c.save()

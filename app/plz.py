@@ -108,19 +108,29 @@ def check_kreis_fuer_bildungsgang(plz: str, bildungsgang: str, fallback_rule) ->
     """PLZ-Pruefung auf Basis der Bezirksfachklassen-Zuordnung je Bildungsgang
     (BildungsgangKreis, admin-pflegbar unter Admin -> Kreise je Bildungsgang).
 
-    Ist fuer den Bildungsgang noch keine Kreis-Liste hinterlegt, faellt die
-    Pruefung auf die alte globale PlzRule zurueck (fallback_rule) - so
-    funktioniert der Sync auch fuer noch nicht konfigurierte Bildungsgaenge
-    weiter, ohne dass jemand alle ~60 Berufe sofort pflegen muss.
+    Ist der Bildungsgang als Landesberufsschule markiert (Bildungsgang.
+    landesweit), gilt jeder Kreis/jede kreisfreie Stadt in Schleswig-Holstein
+    (KREISE_SH) als erlaubt - unabhaengig von evtl. zusaetzlich gepflegten
+    BildungsgangKreis-Eintraegen.
+
+    Ist fuer den Bildungsgang weder "landesweit" gesetzt noch eine Kreis-
+    Liste hinterlegt, faellt die Pruefung auf die alte globale PlzRule
+    zurueck (fallback_rule) - so funktioniert der Sync auch fuer noch nicht
+    konfigurierte Bildungsgaenge weiter, ohne dass jemand alle ~60 Berufe
+    sofort pflegen muss.
 
     Rueckgabe wie check_plz_against_rule: True/False/None (None = unklar).
     """
-    from .models import BildungsgangKreis  # lokaler Import, zirkulaer sonst
+    from .models import Bildungsgang, BildungsgangKreis, KREISE_SH  # zirkulaer sonst
 
-    erlaubte_kreise = {
-        bk.kreis for bk in
-        BildungsgangKreis.query.filter_by(bildungsgang=bildungsgang).all()
-    }
+    bg = Bildungsgang.query.filter_by(code=bildungsgang).first()
+    if bg and bg.landesweit:
+        erlaubte_kreise = set(KREISE_SH)
+    else:
+        erlaubte_kreise = {
+            bk.kreis for bk in
+            BildungsgangKreis.query.filter_by(bildungsgang=bildungsgang).all()
+        }
     if not erlaubte_kreise:
         return check_plz_against_rule(plz, fallback_rule)
 

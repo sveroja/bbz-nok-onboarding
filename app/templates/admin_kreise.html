@@ -15,11 +15,15 @@
   <a href="{{ url_for('admin.kreise_bildungsgang', code=bg.code) }}"
      class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
     {{ bg.name }}
-    {% if bg.code in konfiguriert %}
-      <span class="badge bg-success">konfiguriert</span>
-    {% else %}
-      <span class="badge bg-secondary">nicht konfiguriert (Rückfall auf globale Regel)</span>
-    {% endif %}
+    <span>
+      {% if bg.landesweit %}
+        <span class="badge bg-primary">Landesberufsschule (ganz SH)</span>
+      {% elif bg.code in konfiguriert %}
+        <span class="badge bg-success">konfiguriert</span>
+      {% else %}
+        <span class="badge bg-secondary">nicht konfiguriert (Rückfall auf globale Regel)</span>
+      {% endif %}
+    </span>
   </a>
   {% endfor %}
 </div>

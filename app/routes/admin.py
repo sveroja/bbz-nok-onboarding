@@ -111,8 +111,14 @@ def kreise_bildungsgang(code):
     bestehende = BildungsgangKreis.query.filter_by(bildungsgang=code).all()
 
     if form.validate_on_submit():
+        bildungsgang.landesweit = form.landesweit.data
         for bk in bestehende:
             db.session.delete(bk)
+        # Flush, bevor die (ggf. identischen) Kreise neu eingefuegt werden -
+        # sonst ordnet SQLAlchemy die INSERTs vor die DELETEs ein und die
+        # UNIQUE-Constraint (bildungsgang, kreis) schlaegt fehl, wenn sich
+        # an der Kreis-Auswahl nichts geaendert hat.
+        db.session.flush()
         for kreis in form.kreise.data:
             db.session.add(BildungsgangKreis(bildungsgang=code, kreis=kreis))
         db.session.commit()
@@ -121,6 +127,7 @@ def kreise_bildungsgang(code):
 
     if request.method == "GET":
         form.kreise.data = [bk.kreis for bk in bestehende]
+        form.landesweit.data = bildungsgang.landesweit
 
     return render_template(
         "admin_kreise_bildungsgang.html", form=form, bildungsgang=bildungsgang,

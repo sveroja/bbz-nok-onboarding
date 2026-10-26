@@ -132,10 +132,14 @@ CHECKBOX_FIELDS = [
     (1, 547.1, 510.7, "eltern_ist_ansprechpartner", True),
     (1, 547.1, 532.0, "eltern_hauptwohnsitz", True),
     # Kammer (IHK/HK-Kaestchen liegen NICHT direkt hinter dem Label, sondern
-    # deutlich weiter rechts in einer eigenen Spalte, gleiche x wie LWK)
+    # deutlich weiter rechts in einer eigenen Spalte, gleiche x wie LWK).
+    # IHK/HK teilen sich eine Zelle (x 446.0-468.9): IHK oben (y 593.1-604.8,
+    # Label-Baseline 604.8), HK unten (y 605.7-617.3, Label-Baseline 616.5).
+    # HK lag vorher bei y=625.5 - das war 7-8pt zu tief (X landete unterhalb
+    # des Kaestchens, auf Hoehe "Kreis:"); per pymupdf neu vermessen.
     (1, 457.9, 602.0, "betrieb_kammer", "IHK"),
     (1, 547.1, 602.0, "betrieb_kammer", "LWK"),
-    (1, 457.9, 625.5, "betrieb_kammer", "HK"),
+    (1, 457.9, 618.0, "betrieb_kammer", "HK"),
     # Praktikant/Umschueler
     (1, 102.4, 767.0, "praktikant", True),
     (1, 196.5, 767.0, "umschueler", True),

@@ -118,6 +118,10 @@ class BildungsgangKreisForm(FlaskForm):
     """Welche Kreise/kreisfreien Staedte duerfen fuer einen Bildungsgang an
     dieser Schule beschult werden (Bezirksfachklassen-Regelung SHIBB).
     """
+    landesweit = BooleanField(
+        "Landesberufsschule (ganz Schleswig-Holstein, keine Kreis-Beschränkung)",
+        validators=[OptionalValidator()],
+    )
     kreise = SelectMultipleField(
         "Erlaubte Kreise/kreisfreie Städte",
         choices=[(k, k) for k in KREISE_SH],

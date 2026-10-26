@@ -10,6 +10,15 @@
 
 <form method="post" novalidate>
   {{ form.hidden_tag() }}
+  <div class="form-check mb-3">
+    {{ form.landesweit(class="form-check-input", id="landesweit") }}
+    {{ form.landesweit.label(class="form-check-label") }}
+  </div>
+  <p class="text-muted small" id="kreise-hinweis" {% if not form.landesweit.data %}hidden{% endif %}>
+    Landesberufsschule ist angehakt – die Kreise unten werden für die
+    PLZ-Prüfung ignoriert, es zählt ganz Schleswig-Holstein. Können trotzdem
+    gespeichert bleiben, falls „Landesberufsschule" später wieder entfernt wird.
+  </p>
   <div class="mb-3">
     {% for subfield in form.kreise %}
       <div class="form-check">
@@ -21,4 +30,10 @@
   <a href="{{ url_for('admin.kreise_view') }}" class="btn btn-link">Zurück</a>
   {{ form.submit(class="btn btn-primary") }}
 </form>
+
+<script>
+  document.getElementById("landesweit").addEventListener("change", function () {
+    document.getElementById("kreise-hinweis").hidden = !this.checked;
+  });
+</script>
 {% endblock %}
