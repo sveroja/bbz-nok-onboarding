@@ -6,7 +6,7 @@ from datetime import date
 from typing import Optional
 
 import openpyxl
-from openpyxl.styles import Font
+from openpyxl.styles import Alignment, Font
 from pypdf import PdfReader, PdfWriter
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase.pdfmetrics import stringWidth
@@ -87,6 +87,8 @@ def build_klassen_lk_excel(regs) -> io.BytesIO:
 
 _KB_DATE_FORMAT = "DD.MM.YYYY"
 _KB_DATE_COLUMNS = (4, 6, 7)  # Geburtsdatum, erster Schultag, letzter Schultag
+_KB_CENTER_COLUMNS = (3, 4, 5, 6, 7)  # Klasse, Geburtsdatum, Geschlecht, Schultage
+_KB_LEFT_COLUMNS = (1, 2, 8)  # Name, Vorname, Email
 
 
 def letzter_schultag(ausbildung_bis: Optional[date]) -> Optional[date]:
@@ -146,6 +148,16 @@ def build_klassenbuch_excel(
             cell.font = Font()  # Vorlagen-Eigenheiten (lila Schrift) entfernen
             if col in _KB_DATE_COLUMNS:
                 cell.number_format = _KB_DATE_FORMAT
+            # Die Vorlage setzt das Horizontal-Alignment nicht fuer jede
+            # Zeile gleich (z.B. fehlt es in Zeile 3) - ohne explizites
+            # Alignment faellt Excel bei Datumswerten auf rechtsbuendig
+            # zurueck, was neben den sonst zentrierten Zeilen seltsam
+            # aussieht. Deshalb hier fest vorgeben statt von der Vorlage
+            # zu erben.
+            if col in _KB_CENTER_COLUMNS:
+                cell.alignment = Alignment(horizontal="center")
+            elif col in _KB_LEFT_COLUMNS:
+                cell.alignment = Alignment(horizontal="left")
         row += 1
 
     last_data_row = row - 1
