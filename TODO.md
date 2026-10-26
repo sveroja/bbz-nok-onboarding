@@ -83,6 +83,11 @@
   bereits gesetzte Zug-Zuordnung unangetastet – der Zug kann dann zu einem
   anderen Bildungsgang gehören als der (neue) Beruf. Kein Auto-Fix bisher,
   nur über das Zug-Dropdown in der Übersicht manuell korrigierbar.
+- **„Realschule" / „Hauptschule" ersetzen**: Laut Nutzer müssen diese
+  Bezeichnungen perspektivisch raus/ersetzt werden (Details noch zu
+  klären). Fundstelle: `app/models.py` (`LETZTE_SCHULE_CHOICES`, Codes
+  `HS`/`RS`), ggf. auch Stammdatenblatt-Layout/PDF-Vorlage prüfen, falls
+  die Begriffe dort ebenfalls vorkommen.
 
 ## Zurückgestellt
 
