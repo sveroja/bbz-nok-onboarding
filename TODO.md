@@ -47,8 +47,9 @@
 - **WebUntis-Export**: echten Export einmal in Excel öffnen und Farben/
   Streifen/Datumsformat gegenprüfen (Fix: Tabellen-Range auf alle Zeilen +
   Schrift-Reset + `DD.MM.YYYY` erzwungen).
-- **Namensschild**: Falt-/Stellgeometrie ggf. anpassen (Name höher/tiefer,
-  Logo-Größe) — auf Rückmeldung.
+- **Namensschild**: jetzt 4 Spalten/3 Faltmarken (Box statt Zwei-Seiten-Tent),
+  Logo+Name auf allen 4 Seiten identisch – einmal ausdrucken und falten,
+  prüfen ob Box-Maße/Lesbarkeit so passen.
 - **NOBO-Untertitel** „Onboarding-Tool für die Schüleraufnahme" — Wortlaut
   ändern, falls gewünscht (Start- + Login-Seite).
 - **`ausbildung_bis` zum Pflichtfeld** im WP-Formular machen (dann ist der
@@ -70,6 +71,11 @@
 - **`foerderbedarf_art`**: kommt per Sync rein, wird aber nur als Fallback
   gezeichnet (wenn `foerderschwerpunkt` leer ist). Klären, ob beide Felder
   wirklich getrennt gebraucht werden.
+- **Volles Bearbeiten-Formular + Zug/Beruf-Konsistenz**: Wenn im neuen
+  „Anmeldung bearbeiten"-Formular der Beruf geändert wird, bleibt eine
+  bereits gesetzte Zug-Zuordnung unangetastet – der Zug kann dann zu einem
+  anderen Bildungsgang gehören als der (neue) Beruf. Kein Auto-Fix bisher,
+  nur über das Zug-Dropdown in der Übersicht manuell korrigierbar.
 
 ## Zurückgestellt
 
