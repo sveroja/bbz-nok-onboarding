@@ -1,22 +1,117 @@
 {% extends "base.html" %}
 {% from "_form_macros.html" import render_field %}
-{% block title %}Klassendaten bearbeiten{% endblock %}
+{% block title %}Anmeldung bearbeiten{% endblock %}
 {% block content %}
-<h1>Klassendaten bearbeiten</h1>
+<h1>Anmeldung bearbeiten</h1>
 <p class="text-muted">
-  {{ reg.vorname }} {{ reg.nachname }} — diese Felder stehen nicht (vollständig)
-  im Aufnahmebogen bzw. kommen nicht per Sync und werden hier von Hand gepflegt.
+  {{ reg.vorname }} {{ reg.nachname }} — alle Felder des Aufnahmebogens,
+  auch für Korrekturen (z.B. Vertipper beim Ausfüllen). Zug-Zuordnung und
+  Status werden weiterhin direkt in der
+  <a href="{{ url_for('teacher.registrations') }}">Übersicht</a> gepflegt.
 </p>
 
 <form method="post" novalidate>
   {{ form.hidden_tag() }}
-  {{ render_field(form.hauptlistennummer) }}
-  {{ render_field(form.aufnahmedatum) }}
-  {{ render_field(form.eintrittsdatum) }}
-  {{ render_field(form.sprachniveau) }}
-  <div class="form-check">
-    {{ form.sprachniveau_nachweis(class="form-check-input") }}
-    {{ form.sprachniveau_nachweis.label(class="form-check-label") }}
+
+  <h5 class="mt-4">1. Klassendaten (LK)</h5>
+  <div class="row">
+    <div class="col-md-6">{{ render_field(form.hauptlistennummer) }}</div>
+    <div class="col-md-6">{{ render_field(form.aufnahmedatum) }}</div>
+    <div class="col-md-6">{{ render_field(form.eintrittsdatum) }}</div>
+  </div>
+  {{ render_field(form.nachteilsausgleich) }}
+
+  <h5 class="mt-4">2. Schülerdaten</h5>
+  <div class="row">
+    <div class="col-md-6">{{ render_field(form.nachname) }}</div>
+    <div class="col-md-6">{{ render_field(form.vorname) }}</div>
+    <div class="col-md-6">{{ render_field(form.geburtsname) }}</div>
+    <div class="col-md-6">{{ render_field(form.geburtsdatum) }}</div>
+    <div class="col-md-6">{{ render_field(form.geschlecht) }}</div>
+    <div class="col-md-6">{{ render_field(form.geburtsland) }}</div>
+    <div class="col-md-6">{{ render_field(form.geburtsort) }}</div>
+    <div class="col-md-6">{{ render_field(form.staatsangehoerigkeit_1) }}</div>
+    <div class="col-md-6">{{ render_field(form.staatsangehoerigkeit_2) }}</div>
+    <div class="col-md-6">{{ render_field(form.muttersprache) }}</div>
+    <div class="col-md-6">{{ render_field(form.jahr_des_zuzugs) }}</div>
+    <div class="col-md-6">{{ render_field(form.daz_bedarf) }}</div>
+    <div class="col-md-6">{{ render_field(form.sprachniveau) }}</div>
+    <div class="col-md-6">{{ render_field(form.sprachniveau_nachweis) }}</div>
+    <div class="col-md-6">{{ render_field(form.zug_bool) }}</div>
+    <div class="col-md-6">{{ render_field(form.zug_value) }}</div>
+  </div>
+
+  <h5 class="mt-4">3. Adress-/Kontaktdaten</h5>
+  <div class="row">
+    <div class="col-md-6">{{ render_field(form.wohnt_bei) }}</div>
+    <div class="col-md-6">{{ render_field(form.strasse) }}</div>
+    <div class="col-md-6">{{ render_field(form.plz) }}</div>
+    <div class="col-md-6">{{ render_field(form.ort) }}</div>
+    <div class="col-md-6">{{ render_field(form.kreis) }}</div>
+    <div class="col-md-6">{{ render_field(form.telefon) }}</div>
+    <div class="col-md-6">{{ render_field(form.email) }}</div>
+    <div class="col-md-6">{{ render_field(form.konfession) }}</div>
+    <div class="col-md-6">{{ render_field(form.foerderbedarf) }}</div>
+    <div class="col-md-6">{{ render_field(form.foerderschwerpunkt) }}</div>
+    <div class="col-md-6">{{ render_field(form.foerderbedarf_art) }}</div>
+  </div>
+
+  <h5 class="mt-4">4. Eltern/Ansprechpartner/Hauptwohnsitz</h5>
+  <div class="row">
+    <div class="col-md-6">{{ render_field(form.eltern_nachname) }}</div>
+    <div class="col-md-6">{{ render_field(form.eltern_vorname) }}</div>
+    <div class="col-md-6">{{ render_field(form.eltern_strasse) }}</div>
+    <div class="col-md-6">{{ render_field(form.eltern_plz) }}</div>
+    <div class="col-md-6">{{ render_field(form.eltern_ort) }}</div>
+    <div class="col-md-6">{{ render_field(form.eltern_telefon) }}</div>
+    <div class="col-md-6">{{ render_field(form.eltern_telefax) }}</div>
+    <div class="col-md-6">{{ render_field(form.bundesland_kuerzel) }}</div>
+    <div class="col-md-6">{{ render_field(form.eltern_ist_vater) }}</div>
+    <div class="col-md-6">{{ render_field(form.eltern_ist_mutter) }}</div>
+    <div class="col-md-6">{{ render_field(form.eltern_ist_ansprechpartner) }}</div>
+    <div class="col-md-6">{{ render_field(form.eltern_hauptwohnsitz) }}</div>
+  </div>
+
+  <h5 class="mt-4">5. Ausbildungsverhältnis <span class="text-muted small">(nur duale Ausbildung)</span></h5>
+  <div class="row">
+    <div class="col-md-6">{{ render_field(form.beruf) }}</div>
+    <div class="col-md-6">{{ render_field(form.fachrichtung) }}</div>
+    <div class="col-md-6">{{ render_field(form.betrieb_name) }}</div>
+    <div class="col-md-6">{{ render_field(form.betrieb_kammer) }}</div>
+    <div class="col-md-6">{{ render_field(form.ausbildung_von) }}</div>
+    <div class="col-md-6">{{ render_field(form.ausbildung_bis) }}</div>
+    <div class="col-md-6">{{ render_field(form.betrieb_strasse) }}</div>
+    <div class="col-md-6">{{ render_field(form.betrieb_plz) }}</div>
+    <div class="col-md-6">{{ render_field(form.betrieb_ort) }}</div>
+    <div class="col-md-6">{{ render_field(form.betrieb_kreis) }}</div>
+    <div class="col-md-6">{{ render_field(form.betrieb_telefon) }}</div>
+    <div class="col-md-6">{{ render_field(form.betrieb_fax) }}</div>
+    <div class="col-md-6">{{ render_field(form.betrieb_email) }}</div>
+    <div class="col-md-6">{{ render_field(form.praktikant) }}</div>
+    <div class="col-md-6">{{ render_field(form.umschueler) }}</div>
+    <div class="col-md-6">{{ render_field(form.umschulungsvertrag_vorhanden) }}</div>
+    <div class="col-md-6">{{ render_field(form.kostenuebernahme_vorhanden) }}</div>
+  </div>
+
+  <h5 class="mt-4">6. Bisheriger schulischer Werdegang</h5>
+  <div class="row">
+    <div class="col-md-6">{{ render_field(form.letzte_schule_kurzform) }}</div>
+    <div class="col-md-6">{{ render_field(form.jahr_verlassen) }}</div>
+    <div class="col-md-6">{{ render_field(form.klassenstufe) }}</div>
+    <div class="col-md-6">{{ render_field(form.mit_abschluss_beendet) }}</div>
+    <div class="col-md-6">{{ render_field(form.art_abschluss_letzte_schule) }}</div>
+    <div class="col-md-6">{{ render_field(form.allgemeinbildender_abschluss) }}</div>
+    <div class="col-md-6">{{ render_field(form.lrs) }}</div>
+  </div>
+
+  <h5 class="mt-4">7. Schulische Abschlüsse am BBZ</h5>
+  <div class="row">
+    <div class="col-md-6">{{ render_field(form.foerderzentrum) }}</div>
+    <div class="col-md-6">{{ render_field(form.bos_fos_beruf) }}</div>
+    <div class="col-md-6">{{ render_field(form.esa_5_jahre_englisch) }}</div>
+    <div class="col-md-6">{{ render_field(form.esa_englisch_ausreichend) }}</div>
+    <div class="col-md-6">{{ render_field(form.zweite_fremdsprache) }}</div>
+    <div class="col-md-6">{{ render_field(form.qualifizierungsnachweise_am) }}</div>
   </div>
   <div class="form-check mb-3">
     {{ form.zeugnis_geprueft(class="form-check-input") }}
@@ -25,6 +120,9 @@
       <span class="text-muted small">— zuletzt: {{ reg.zeugnis_geprueft_am.strftime("%d.%m.%Y") }}</span>
     {% endif %}
   </div>
+
+  <h5 class="mt-4">Interne Notizen</h5>
+  {{ render_field(form.notizen) }}
 
   <a href="{{ url_for('teacher.registrations') }}" class="btn btn-link">Zurück</a>
   {{ form.submit(class="btn btn-primary") }}

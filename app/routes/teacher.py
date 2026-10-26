@@ -15,12 +15,28 @@ from .. import exports
 from ..extensions import db, limiter
 from ..models import Abteilung, Bildungsgang, Registration, Klasse, KlasseBildungsgang
 from ..decorators import role_required
-from ..forms import ActionForm, KlasseForm, RegistrationLKForm
+from ..forms import (
+    ActionForm, KlasseForm, RegistrationForm,
+    form_to_tri_state, tri_state_to_form,
+)
 from ..fluentform import sync_submissions, delete_remote_submission
 
 bp = Blueprint("teacher", __name__, url_prefix="/teacher")
 
 SESSION_KLASSE_KEY = "aktive_klasse_id"  # None/fehlt = noch nicht gewaehlt, 0 = "alle"
+
+# Registration-Spalten, die im RegistrationForm als ja/nein/keine-Angabe-
+# SelectField (nicht als Checkbox) modelliert sind - siehe forms.py,
+# JA_NEIN_CHOICES. zeugnis_geprueft ist bewusst NICHT dabei (eigene
+# Checkbox-Logik in edit_registration, s.u.).
+TRI_STATE_FIELDS = [
+    "daz_bedarf", "sprachniveau_nachweis", "zug_bool", "foerderbedarf",
+    "eltern_ist_vater", "eltern_ist_mutter", "eltern_ist_ansprechpartner",
+    "eltern_hauptwohnsitz", "praktikant", "umschueler",
+    "umschulungsvertrag_vorhanden", "kostenuebernahme_vorhanden",
+    "mit_abschluss_beendet", "lrs", "esa_5_jahre_englisch",
+    "esa_englisch_ausreichend", "zweite_fremdsprache",
+]
 
 
 def _ist_unterklasse(klasse) -> bool:
@@ -276,31 +292,44 @@ def zuege_uebernehmen():
 @login_required
 @role_required("teacher", "admin")
 def edit_registration(reg_id):
-    """Klassendaten (Sektion 1) + DaZ-Sprachniveau - stehen nicht/nicht
-    vollstaendig im Aufnahmebogen, werden von der LK hier nachgepflegt.
+    """Komplette Anmeldung bearbeiten (alle Sektionen des Aufnahmebogens) -
+    fuer LK-Nachpflege UND Korrekturen, falls sich SuS beim Ausfuellen
+    vertippt haben. zug_id/Status laufen weiter ueber eigene Aktionen in
+    der Uebersicht (Dropdown bzw. "geprüft"-Button), nicht hier.
     """
     reg = db.session.get(Registration, reg_id)
     if reg is None:
         flash("Datensatz nicht gefunden.", "error")
         return redirect(url_for("teacher.registrations"))
 
-    form = RegistrationLKForm(
+    form = RegistrationForm(
         obj=reg, zeugnis_geprueft=reg.zeugnis_geprueft_am is not None
     )
+    if not form.is_submitted():
+        # obj=reg belegt die Tri-State-SelectFields mit dem rohen Bool/None-
+        # Wert vor (passt nicht zu den "ja"/"nein"/""-Choices) - hier mit
+        # der passenden String-Repraesentation ueberschreiben.
+        for name in TRI_STATE_FIELDS:
+            getattr(form, name).data = tri_state_to_form(getattr(reg, name))
+
     if form.validate_on_submit():
-        reg.hauptlistennummer = form.hauptlistennummer.data or None
-        reg.aufnahmedatum = form.aufnahmedatum.data
-        reg.eintrittsdatum = form.eintrittsdatum.data
-        reg.sprachniveau = form.sprachniveau.data or None
-        reg.sprachniveau_nachweis = form.sprachniveau_nachweis.data
+        for name, field in form._fields.items():
+            if name in ("submit", "csrf_token", "zeugnis_geprueft"):
+                continue
+            if name in TRI_STATE_FIELDS:
+                setattr(reg, name, form_to_tri_state(field.data))
+            else:
+                setattr(reg, name, field.data or None)
+
         # "Zeugnis geprüft"-Haken -> Datum auf heute setzen bzw. loeschen.
         if form.zeugnis_geprueft.data:
             if reg.zeugnis_geprueft_am is None:
                 reg.zeugnis_geprueft_am = date.today()
         else:
             reg.zeugnis_geprueft_am = None
+
         db.session.commit()
-        flash("Klassendaten gespeichert.", "success")
+        flash("Anmeldung gespeichert.", "success")
         return redirect(url_for("teacher.registrations"))
 
     return render_template("teacher_registration_edit.html", form=form, reg=reg)
