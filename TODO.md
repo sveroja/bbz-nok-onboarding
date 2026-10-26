@@ -41,9 +41,6 @@
 
 ## Offen / vom Nutzer gegenzuprüfen
 
-- **Logo für hellen Hintergrund**: Kopfleiste ist jetzt weiß, das aktuelle
-  Logo ist für dunklen Grund. Neues Logo hochladen (gilt auch fürs
-  Namensschild).
 - **WebUntis-Export**: echten Export einmal in Excel öffnen und Farben/
   Streifen/Datumsformat gegenprüfen (Fix: Tabellen-Range auf alle Zeilen +
   Schrift-Reset + `DD.MM.YYYY` erzwungen).
@@ -55,12 +52,9 @@
   einfach um 180° (Hochachse) gedreht, dann zeigt wahlweise Vor- oder
   Nachname nach vorn. Visuell per pymupdf-Simulation geprüft (Flip-Logik
   stimmt), aber einmal real ausdrucken/falten und gegenprüfen, ob die
-  Standfüße stabil genug stehen und Logo-Größe (sobald ein Logo hochgeladen
-  ist) passt.
+  Standfüße stabil genug stehen.
 - **NOBO-Untertitel** „Onboarding-Tool für die Schüleraufnahme" — Wortlaut
   ändern, falls gewünscht (Start- + Login-Seite).
-- **`ausbildung_bis` zum Pflichtfeld** im WP-Formular machen (dann ist der
-  berechnete „letzter Schultag" für alle regulären SuS gefüllt).
 
 ## Später
 
