@@ -7,6 +7,7 @@ from flask_login import login_required
 from .. import branding, vorlagen
 from ..extensions import db
 from ..models import Abteilung, Bildungsgang, BildungsgangKreis, PlzRule
+from ..plz import recheck_plz_fuer_bildungsgang
 from ..decorators import role_required
 from ..forms import (
     AbteilungForm, ActionForm, BildungsgangForm, BildungsgangImportForm,
@@ -119,10 +120,19 @@ def kreise_bildungsgang(code):
         # UNIQUE-Constraint (bildungsgang, kreis) schlaegt fehl, wenn sich
         # an der Kreis-Auswahl nichts geaendert hat.
         db.session.flush()
-        for kreis in form.kreise.data:
+        for kreis in form.kreise.data or []:
             db.session.add(BildungsgangKreis(bildungsgang=code, kreis=kreis))
         db.session.commit()
-        flash(f"Kreise für '{bildungsgang.name}' gespeichert.", "success")
+
+        # Bereits synchronisierte Anmeldungen hatten ihren PLZ-Check evtl.
+        # noch vor dieser Aenderung (z.B. "Landesberufsschule" gerade erst
+        # angehakt) - ohne Neuabgleich wuerden sie weiter auf dem alten,
+        # jetzt falschen Ergebnis stehen bleiben.
+        geaendert = recheck_plz_fuer_bildungsgang(code)
+        msg = f"Kreise für '{bildungsgang.name}' gespeichert."
+        if geaendert:
+            msg += f" {geaendert} bestehende Anmeldung(en) neu geprüft."
+        flash(msg, "success")
         return redirect(url_for("admin.kreise_view"))
 
     if request.method == "GET":

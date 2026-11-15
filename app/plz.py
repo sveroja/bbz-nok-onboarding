@@ -145,3 +145,37 @@ def check_kreis_fuer_bildungsgang(plz: str, bildungsgang: str, fallback_rule) ->
         plz, kreis_plz, bildungsgang, erlaubte_kreise,
     )
     return kreis_plz in erlaubte_kreise
+
+
+def recheck_plz_fuer_bildungsgang(bildungsgang: str) -> int:
+    """Berechnet `plz_ok` alle bereits SYNCHRONISIERTEN Anmeldungen eines
+    Bildungsgangs neu - wird einmal gesetzt (beim Sync) und sonst nie
+    automatisch aktualisiert. Ohne diesen Neuabgleich bleibt eine
+    bestehende Anmeldung auf ihrem alten (ggf. falschen) Stand, wenn danach
+    z.B. "Landesberufsschule" an- oder die Kreis-Liste fuer den
+    Bildungsgang geaendert wird - Admin -> Kreise ruft das deshalb nach dem
+    Speichern auf. Gibt die Anzahl tatsaechlich geaenderter Anmeldungen
+    zurueck.
+    """
+    from datetime import datetime, timezone
+
+    from .extensions import db  # zirkulaer sonst
+    from .models import PlzRule, Registration
+
+    rule = PlzRule.query.filter_by(active=True).first()
+    geaendert = 0
+    for reg in Registration.query.filter_by(beruf=bildungsgang).all():
+        pruef_plz = reg.betrieb_plz or reg.plz
+        if not pruef_plz:
+            continue
+        try:
+            neu = check_kreis_fuer_bildungsgang(pruef_plz, bildungsgang, rule)
+        except Exception:
+            logger.exception("PLZ-Neuabgleich fehlgeschlagen für Anmeldung %s", reg.id)
+            continue
+        reg.plz_checked_at = datetime.now(timezone.utc)
+        if neu != reg.plz_ok:
+            reg.plz_ok = neu
+            geaendert += 1
+    db.session.commit()
+    return geaendert
