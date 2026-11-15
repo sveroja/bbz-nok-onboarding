@@ -112,6 +112,29 @@ Beides macht dasselbe: holt alle neuen Submissions aus WordPress ab,
 Dubletten werden über die `external_id` (Fluent-Forms-Submission-ID)
 erkannt und übersprungen – mehrfaches Syncen ist also gefahrlos.
 
+### Automatischer Sync per Host-Cron (optional)
+
+Standardmäßig muss jemand auf „Jetzt synchronisieren" klicken. Wer das
+automatisieren möchte, kann auf dem Host (nicht im Container) einen Cronjob
+einrichten, der den Sync regelmäßig per CLI anstößt – einmal täglich reicht
+i.d.R. aus, solange das deutlich innerhalb der in WordPress eingestellten
+Löschfrist liegt (siehe `FLUENTFORM_RETENTION_DAYS` oben).
+
+Beispiel-Crontab-Zeile (z.B. per `crontab -e` auf dem Server):
+
+```
+0 4 * * * cd /pfad/zum/repo && docker compose exec -T app flask --app run.py sync-fluentform >> /var/log/nobo-sync.log 2>&1
+```
+
+- `-T` unterdrückt die TTY-Allokation, die Cron sonst nicht bereitstellen kann.
+- Uhrzeit (`0 4`) und Repo-Pfad an die echte Installation anpassen.
+- Der Sync holt bei jedem Lauf **alle** aktuellen WP-Submissions neu ab (kein
+  inkrementeller Abruf) – die `external_id`-Dedup-Prüfung sorgt dafür, dass
+  bereits importierte Anmeldungen dabei nicht doppelt angelegt werden.
+- **Ohne** regelmäßigen Sync (weder per Button noch per Cron) gehen
+  Anmeldungen, deren WP-Original die Löschfrist überschreitet, unwiderruflich
+  verloren, falls sie vorher nicht importiert wurden.
+
 ### Dev: Anmeldungen zurücksetzen (für erneuten Sync-Test)
 
 ```bash

@@ -398,6 +398,24 @@ def delete(reg_id):
     return redirect(url_for("teacher.registrations"))
 
 
+def _bildungsgang_gruppen():
+    # Bildungsgang-Checkboxen im Formular nach Abteilung gruppieren, damit man
+    # sich bei mittlerweile ~70 Berufen nicht mehr durch eine flache Liste
+    # suchen muss. Gruppierung ueber den Code (= Wert der Checkbox/choices),
+    # nicht den Namen - Abgleich mit subfield.data im Template braucht den Code.
+    abteilungen = Abteilung.query.order_by(Abteilung.name).all()
+    gruppen = [
+        (a.name, [b.code for b in sorted(a.bildungsgang, key=lambda b: b.name) if b.code])
+        for a in abteilungen
+    ]
+    ohne_abteilung = [
+        b.code for b in Bildungsgang.query.filter_by(abteilung_id=None)
+                                            .order_by(Bildungsgang.name).all()
+        if b.code
+    ]
+    return gruppen, ohne_abteilung
+
+
 @bp.route("/klassen", methods=["GET", "POST"])
 @login_required
 @role_required("teacher", "admin")
@@ -423,24 +441,57 @@ def klassen():
             return redirect(url_for("teacher.klassen"))
 
     alle_klassen = Klasse.query.order_by(Klasse.name).all()
-
-    # Bildungsgang-Checkboxen im Formular nach Abteilung gruppieren, damit man
-    # sich bei mittlerweile ~70 Berufen nicht mehr durch eine flache Liste
-    # suchen muss. Gruppierung ueber den Code (= Wert der Checkbox/choices),
-    # nicht den Namen - Abgleich mit subfield.data im Template braucht den Code.
-    abteilungen = Abteilung.query.order_by(Abteilung.name).all()
-    gruppen = [
-        (a.name, [b.code for b in sorted(a.bildungsgang, key=lambda b: b.name) if b.code])
-        for a in abteilungen
-    ]
-    ohne_abteilung = [
-        b.code for b in Bildungsgang.query.filter_by(abteilung_id=None)
-                                            .order_by(Bildungsgang.name).all()
-        if b.code
-    ]
+    gruppen, ohne_abteilung = _bildungsgang_gruppen()
+    beruf_namen = {b.code: b.name for b in Bildungsgang.query.all() if b.code}
 
     return render_template(
         "teacher_klassen.html", form=form, klassen=alle_klassen,
+        bildungsgang_gruppen=gruppen, bildungsgang_ohne_abteilung=ohne_abteilung,
+        beruf_namen=beruf_namen,
+    )
+
+
+@bp.route("/klassen/<int:klasse_id>/bearbeiten", methods=["GET", "POST"])
+@login_required
+@role_required("teacher", "admin")
+def edit_klasse(klasse_id):
+    klasse = db.session.get(Klasse, klasse_id)
+    if klasse is None:
+        flash("Klasse nicht gefunden.", "error")
+        return redirect(url_for("teacher.klassen"))
+
+    form = KlasseForm(obj=klasse)
+    if request.method == "GET":
+        form.bildungsgaenge.data = [kb.bildungsgang for kb in klasse.bildungsgaenge]
+
+    if form.validate_on_submit():
+        name = form.name.data.strip()
+        doppelt = Klasse.query.filter(Klasse.name == name, Klasse.id != klasse.id).first()
+        if doppelt:
+            flash(f"Klasse '{name}' existiert bereits.", "error")
+        else:
+            klasse.name = name
+            klasse.zustaendige_lehrkraft = (
+                form.zustaendige_lehrkraft.data or ""
+            ).strip() or None
+
+            alt = {kb.bildungsgang for kb in klasse.bildungsgaenge}
+            neu = set(form.bildungsgaenge.data)
+            for kb in list(klasse.bildungsgaenge):
+                if kb.bildungsgang not in neu:
+                    db.session.delete(kb)
+            db.session.flush()  # erst loeschen, dann einfuegen (UNIQUE-Constraint)
+            for bildungsgang in neu - alt:
+                db.session.add(KlasseBildungsgang(
+                    klasse_id=klasse.id, bildungsgang=bildungsgang
+                ))
+            db.session.commit()
+            flash(f"Klasse '{name}' gespeichert.", "success")
+            return redirect(url_for("teacher.klassen"))
+
+    gruppen, ohne_abteilung = _bildungsgang_gruppen()
+    return render_template(
+        "teacher_klasse_edit.html", form=form, klasse=klasse,
         bildungsgang_gruppen=gruppen, bildungsgang_ohne_abteilung=ohne_abteilung,
     )
 

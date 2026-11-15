@@ -95,7 +95,7 @@ class KlasseForm(FlaskForm):
         validators=[DataRequired("Pflichtfeld."), Length(max=50)],
     )
     zustaendige_lehrkraft = StringField(
-        "Zuständige Lehrkraft (optional, nur zur Anzeige)",
+        "Zuständige Lehrkraft (= Klassenlehrer/in im Stammdatenblatt)",
         validators=[OptionalValidator(), Length(max=150)],
     )
     bildungsgaenge = SelectMultipleField(

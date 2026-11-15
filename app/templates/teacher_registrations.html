@@ -4,12 +4,11 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
   <div>
     <h1 class="mb-0">Anmeldungen</h1>
-    <p class="text-muted mb-0">
-      Klasse: <strong>{{ aktive_klasse.name if aktive_klasse else "alle" }}</strong>
-      <a href="{{ url_for('teacher.bereich') }}" class="ms-1">Klasse wechseln</a>
-    </p>
   </div>
   <div class="d-flex gap-2">
+    <a href="{{ url_for('teacher.bereich') }}" class="btn btn-outline-secondary btn-sm">
+      Bereich: {{ aktive_klasse.name if aktive_klasse else "alle" }} ▾
+    </a>
     <form method="post" action="{{ url_for('teacher.sync') }}" class="m-0">
       {{ action_form.hidden_tag() }}
       <button type="submit" class="btn btn-primary btn-sm">

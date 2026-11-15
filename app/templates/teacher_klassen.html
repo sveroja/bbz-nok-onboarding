@@ -97,10 +97,13 @@
       {% for k in klassen %}
         <tr>
           <td>{{ k.name }}</td>
-          <td>{{ k.bildungsgaenge | map(attribute="bildungsgang") | join(", ") }}</td>
+          <td>{% for bg in k.bildungsgaenge %}{{ beruf_namen.get(bg.bildungsgang, bg.bildungsgang) }}{% if not loop.last %}, {% endif %}{% endfor %}</td>
           <td>{{ k.zustaendige_lehrkraft or "" }}</td>
           <td class="text-end">
+            <a href="{{ url_for('teacher.edit_klasse', klasse_id=k.id) }}"
+               class="btn btn-sm btn-outline-secondary">bearbeiten</a>
             <form method="post" action="{{ url_for('teacher.delete_klasse', klasse_id=k.id) }}"
+                  class="d-inline"
                   onsubmit="return confirm('Klasse wirklich löschen? Zugeordnete Anmeldungen verlieren die Zuordnung.');">
               {{ form.hidden_tag() }}
               <button class="btn btn-sm btn-outline-danger" type="submit">löschen</button>
