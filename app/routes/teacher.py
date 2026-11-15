@@ -48,6 +48,23 @@ def _ist_unterklasse(klasse) -> bool:
     return klasse.name[-1:].isalpha()
 
 
+def _unterklassen_fuer_bereich(aktive_klasse):
+    """Zuege (Unterklassen), die zur Zug-Auswahl angeboten werden: ohne
+    gewaehlten Bereich alle, mit gewaehltem Bereich nur die Zuege von
+    dessen eigenen Bildungsgaengen - sonst tauchen in der "Zug anzeigen"-
+    Filterliste Zuege eines ganz anderen Bildungsgangs auf (z.B. ELIa/ELIb
+    obwohl der Bereich INFO024 keine eigenen Zuege hat).
+    """
+    alle = [k for k in Klasse.query.order_by(Klasse.name).all() if _ist_unterklasse(k)]
+    if aktive_klasse is None:
+        return alle
+    bildungsgaenge = {kb.bildungsgang for kb in aktive_klasse.bildungsgaenge}
+    return [
+        k for k in alle
+        if any(kb.bildungsgang in bildungsgaenge for kb in k.bildungsgaenge)
+    ]
+
+
 def _beruf_to_klassen_map(klassen):
     """{Bildungsgang: [Klasse, ...]} - fuer die Zug-Auswahl je Anmeldung."""
     mapping = defaultdict(list)
@@ -185,7 +202,7 @@ def registrations():
         return redirect(url_for("teacher.bereich"))
 
     regs, aktive_klasse, zug_filter = _current_filtered_regs()
-    klassen = [k for k in Klasse.query.order_by(Klasse.name).all() if _ist_unterklasse(k)]
+    klassen = _unterklassen_fuer_bereich(aktive_klasse)
     beruf_to_klassen = _beruf_to_klassen_map(klassen)
     duplicate_ids = _find_duplicate_ids()
     beruf_namen = {b.code: b.name for b in Bildungsgang.query.all() if b.code}

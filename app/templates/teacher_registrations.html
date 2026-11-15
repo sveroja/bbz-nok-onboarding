@@ -1,14 +1,26 @@
 {% extends "base.html" %}
 {% block title %}Anmeldungen{% endblock %}
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-3">
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
   <div>
     <h1 class="mb-0">Anmeldungen</h1>
   </div>
-  <div class="d-flex gap-2">
+  <div class="d-flex align-items-center gap-2 flex-wrap">
     <a href="{{ url_for('teacher.bereich') }}" class="btn btn-outline-secondary btn-sm">
       Bereich: {{ aktive_klasse.name if aktive_klasse else "alle" }} ▾
     </a>
+    <form method="get" action="{{ url_for('teacher.registrations') }}" class="d-flex align-items-center gap-1 m-0">
+      <label for="zug_id" class="form-label m-0 small text-muted">Zug:</label>
+      <select id="zug_id" name="zug_id" class="form-select form-select-sm w-auto" onchange="this.form.submit()">
+        <option value="">alle</option>
+        {% for k in klassen %}
+          <option value="{{ k.id }}" {% if zug_filter == k.id %}selected{% endif %}>{{ k.name }}</option>
+        {% endfor %}
+      </select>
+    </form>
+    {% if zug_filter %}
+      <a href="{{ url_for('teacher.registrations') }}" class="btn btn-sm btn-link p-0">Filter entfernen</a>
+    {% endif %}
     <form method="post" action="{{ url_for('teacher.sync') }}" class="m-0">
       {{ action_form.hidden_tag() }}
       <button type="submit" class="btn btn-primary btn-sm">
@@ -21,21 +33,8 @@
   </div>
 </div>
 
+{% if offene_vorschlaege %}
 <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
-  <form method="get" action="{{ url_for('teacher.registrations') }}" class="d-flex align-items-center gap-2 m-0">
-    <label for="zug_id" class="form-label m-0">Zug anzeigen:</label>
-    <select id="zug_id" name="zug_id" class="form-select form-select-sm w-auto" onchange="this.form.submit()">
-      <option value="">alle</option>
-      {% for k in klassen %}
-        <option value="{{ k.id }}" {% if zug_filter == k.id %}selected{% endif %}>{{ k.name }}</option>
-      {% endfor %}
-    </select>
-    {% if zug_filter %}
-      <a href="{{ url_for('teacher.registrations') }}" class="btn btn-sm btn-link">Filter entfernen</a>
-    {% endif %}
-  </form>
-
-  {% if offene_vorschlaege %}
   <form method="post" action="{{ url_for('teacher.zuege_uebernehmen') }}" class="m-0">
     {{ action_form.hidden_tag() }}
     <button type="submit" class="btn btn-sm btn-primary"
@@ -43,8 +42,8 @@
       {{ offene_vorschlaege }} {{ 'Zug-Vorschlag' if offene_vorschlaege == 1 else 'Zug-Vorschläge' }} aus dem Aufnahmebogen übernehmen
     </button>
   </form>
-  {% endif %}
 </div>
+{% endif %}
 
 <div class="card mb-3">
   <div class="card-body">
