@@ -38,6 +38,33 @@
   - Gleichzeitig dran denken: `.env` auf Prod um
     `FLUENTFORM_RETENTION_DAYS=31` ergänzen (aktuell nicht gesetzt),
     damit die „WP: noch X Tage"-Anzeige in der Übersicht stimmt.
+- **Neuer Export „Office 365-Anmeldung" (xlsx)**: Nutzer hat eine Vorlage
+  hochgeladen (`EDV-Abteilung mit Benutzernamengenerierung.xlsx`, Sheet
+  „TEST Import-CSV für Office 365-", Header in Zeile 1, Daten ab Zeile 2).
+  Spalte A (Benutzername) und D (Anzeigename) sind in der Vorlage bereits
+  Formeln auf Basis von B/C (`Vorname.Nachname@bbzamnok.onmicrosoft.com`
+  mit Umlaut-Ersetzung bzw. `Vorname Nachname`) – die bleiben unangetastet,
+  nur Werte eintragen, keine Formeln überschreiben. Zu befüllende
+  („grüne") Spalten, analog zu `build_klassenbuch_excel`/`build_daz_excel`
+  als neue Funktion in `app/exports.py` + neuer Vorlagen-Key in
+  `app/vorlagen.py` (`VORLAGEN["office365"]`) + Export-Button in
+  `teacher_registrations.html`:
+  - B Vorname ← `r.vorname`
+  - C Nachname ← `r.nachname`
+  - E Position ← fest `"Schüler"`
+  - F Abteilung ← wie im DaZ-Export über `Bildungsgang.query.filter_by(
+    code=r.beruf).first().abteilung.name` ermitteln
+  - L Adresse ← `r.strasse`
+  - M Ort ← `r.ort`
+  - N Bundesland/Kanton ← `r.bundesland_kuerzel` (Achtung: das ist das
+    Bundesland aus Sektion 4 „Eltern/Hauptwohnsitz", während
+    Straße/Ort/PLZ aus Sektion 3 kommen – beim Nutzer gegenprüfen, ob das
+    für alle SuS dieselbe Adresse meint oder ob hier eine Inkonsistenz
+    entstehen kann. Evtl. auch Kürzel → Klarname mappen, falls Office 365
+    den vollen Bundesland-Namen statt „SH"/„HH" erwartet.)
+  - O Postleitzahl ← `r.plz`
+  - P Land oder Region ← vermutlich fest `"Deutschland"` (kein eigenes
+    Länder-Feld im Datenmodell) – mit Nutzer abklären.
 
 ## Offen / vom Nutzer gegenzuprüfen
 
