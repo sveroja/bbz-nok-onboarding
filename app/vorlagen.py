@@ -29,6 +29,11 @@ VORLAGEN = {
         "label": "Erklärung Umschüler (PDF)",
         "ext": "pdf",
     },
+    "office365": {
+        "filename": "office365.xlsx",
+        "label": "Office365 (xlsx)",
+        "ext": "xlsx",
+    },
 }
 
 

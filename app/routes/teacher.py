@@ -616,6 +616,24 @@ def export_daz():
     )
 
 
+@bp.route("/export/office365", methods=["GET", "POST"])
+@login_required
+@role_required("teacher", "admin")
+def export_office365():
+    regs, aktive_klasse, zug_filter = _current_filtered_regs()
+    try:
+        buf = exports.build_office365_excel(regs)
+    except FileNotFoundError as exc:
+        flash(f"{exc} Siehe Admin → Export-Vorlagen.", "error")
+        return redirect(url_for("teacher.registrations"))
+
+    name = f"office365{_klassen_suffix(aktive_klasse, zug_filter)}.xlsx"
+    return send_file(
+        buf, as_attachment=True, download_name=name,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+
+
 @bp.route("/export/stammdatenblatt", methods=["GET", "POST"])
 @login_required
 @role_required("teacher", "admin")

@@ -234,6 +234,83 @@ def build_daz_excel(regs) -> io.BytesIO:
 
 
 # ---------------------------------------------------------------------------
+# Office365-Import (schreibt in die admin-hochgeladene Vorlage)
+# ---------------------------------------------------------------------------
+
+BUNDESLAND_NAMEN = {
+    "BW": "Baden-Württemberg",
+    "BY": "Bayern",
+    "BE": "Berlin",
+    "BB": "Brandenburg",
+    "HB": "Bremen",
+    "HH": "Hamburg",
+    "HE": "Hessen",
+    "MV": "Mecklenburg-Vorpommern",
+    "NI": "Niedersachsen",
+    "NW": "Nordrhein-Westfalen",
+    "RP": "Rheinland-Pfalz",
+    "SL": "Saarland",
+    "SN": "Sachsen",
+    "ST": "Sachsen-Anhalt",
+    "SH": "Schleswig-Holstein",
+    "TH": "Thüringen",
+}
+
+
+def _bundesland_name(kuerzel: Optional[str]) -> Optional[str]:
+    """Voller Bundesland-Name zum Kuerzel - unbekannte/leere Werte (z.B.
+    Freitext-Tippfehler) werden unveraendert durchgereicht statt verworfen.
+    """
+    if not kuerzel:
+        return None
+    return BUNDESLAND_NAMEN.get(kuerzel.strip().upper(), kuerzel)
+
+
+def build_office365_excel(regs) -> io.BytesIO:
+    """Wirft FileNotFoundError, wenn keine Vorlage hochgeladen wurde.
+
+    Spalte A (Benutzername) und D (Anzeigename) sind in der Vorlage bereits
+    Formeln auf Basis von B/C - die bleiben unangetastet, hier werden nur
+    die uebrigen ("gruenen") Spalten befuellt. Erste Tabellenzeile der
+    Vorlage (unabhaengig vom Blattnamen) = Kopfzeile, Daten ab Zeile 2.
+    """
+    path = vorlagen.vorlage_path("office365")
+    if not path.exists():
+        raise FileNotFoundError("Office365-Vorlage wurde noch nicht hochgeladen.")
+
+    from .models import Bildungsgang  # lokaler Import, zirkulaer sonst
+
+    wb = openpyxl.load_workbook(path)
+    ws = wb.worksheets[0]
+
+    abteilung_cache = {}
+
+    def _abteilung(beruf):
+        if beruf not in abteilung_cache:
+            eintrag = Bildungsgang.query.filter_by(code=beruf).first()
+            abteilung_cache[beruf] = eintrag.abteilung.name if eintrag and eintrag.abteilung else None
+        return abteilung_cache[beruf]
+
+    row = 2  # Zeile 1 = Kopfzeile der Vorlage
+    for r in regs:
+        ws.cell(row=row, column=2, value=r.vorname)
+        ws.cell(row=row, column=3, value=r.nachname)
+        ws.cell(row=row, column=5, value="Schüler")
+        ws.cell(row=row, column=6, value=_abteilung(r.beruf))
+        ws.cell(row=row, column=12, value=r.strasse)
+        ws.cell(row=row, column=13, value=r.ort)
+        ws.cell(row=row, column=14, value=_bundesland_name(r.bundesland_kuerzel))
+        ws.cell(row=row, column=15, value=r.plz)
+        ws.cell(row=row, column=16, value="Deutschland")
+        row += 1
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return buf
+
+
+# ---------------------------------------------------------------------------
 # Stammdatenblatt-PDF (Koordinaten-Overlay auf die admin-hochgeladene Vorlage)
 # ---------------------------------------------------------------------------
 
